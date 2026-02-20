@@ -10,6 +10,7 @@ set -e
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
+BLUE='\033[0;34m'
 NC='\033[0m'
 
 echo -e "${GREEN}🚀 EasyInstall Enterprise Stack v2.0${NC}"
@@ -121,7 +122,7 @@ install_packages() {
         php-gd php-imagick php-opcache php-redis \
         redis-server ufw fail2ban curl wget unzip openssl \
         certbot python3-certbot-nginx \
-        htop neofetch git cron
+        htop neofetch git cron dnsutils
         
     echo -e "${GREEN}   ✅ All packages installed${NC}"
 }
@@ -436,7 +437,7 @@ EOF
 }
 
 # ============================================
-# Install Management Commands
+# Install Management Commands (WITH SSL INTEGRATED)
 # ============================================
 install_commands() {
     echo -e "${YELLOW}🔧 Installing management commands...${NC}"
@@ -444,13 +445,14 @@ install_commands() {
     # Create commands directory
     mkdir -p /usr/local/bin
     
-    # Main easyinstall command
+    # Main easyinstall command with SSL feature
     cat > /usr/local/bin/easyinstall <<'EOF'
 #!/bin/bash
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
+BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Function to get PHP version for status command
@@ -461,6 +463,147 @@ get_php_fpm_service() {
     else
         # Try to detect from systemd
         systemctl list-units --type=service --all 2>/dev/null | grep -o "php[0-9]\.[0-9]*-fpm\.service" | head -1 || echo "php-fpm"
+    fi
+}
+
+# Function to install WordPress plugins
+install_wp_plugins() {
+    local DOMAIN=$1
+    
+    echo -e "${YELLOW}🔌 Installing WordPress plugins...${NC}"
+    
+    # Check if wp-cli is installed
+    if ! command -v wp &> /dev/null; then
+        echo -e "${YELLOW}📦 Installing WP-CLI...${NC}"
+        curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+        chmod +x wp-cli.phar
+        mv wp-cli.phar /usr/local/bin/wp
+    fi
+    
+    cd /var/www/html/wordpress
+    
+    # Install and configure Nginx Helper plugin
+    echo -e "   📥 Installing Nginx Helper plugin..."
+    wp plugin install nginx-helper --activate --allow-root
+    
+    # Configure Nginx Helper
+    wp option update nginx_helper_options --format=json --allow-root '{
+        "enable_purge": "1",
+        "cache_method": "enable_fastcgi",
+        "purge_method": "get_request",
+        "redis_hostname": "127.0.0.1",
+        "redis_port": "6379"
+    }'
+    
+    # Install and configure Redis Object Cache plugin
+    echo -e "   📥 Installing Redis Object Cache plugin..."
+    wp plugin install redis-cache --activate --allow-root
+    
+    # Enable Redis cache
+    wp redis enable --allow-root
+    
+    echo -e "${GREEN}   ✅ WordPress plugins installed and configured${NC}"
+}
+
+# Function to install SSL certificate
+install_ssl() {
+    local DOMAIN=$1
+    local EMAIL=$2
+    
+    if [ -z "$DOMAIN" ]; then
+        echo -e "${RED}❌ Error: Domain name required${NC}"
+        echo -e "${YELLOW}Usage: easyinstall ssl example.com [email]${NC}"
+        return 1
+    fi
+    
+    echo -e "${BLUE}🔐 Installing SSL certificate for $DOMAIN...${NC}"
+    
+    # Check if domain points to this server
+    if command -v dig &> /dev/null; then
+        DOMAIN_IP=$(dig +short $DOMAIN | head -1)
+        SERVER_IP=$(curl -s ifconfig.me)
+        
+        if [ "$DOMAIN_IP" != "$SERVER_IP" ] && [ -n "$DOMAIN_IP" ]; then
+            echo -e "${RED}⚠️  Warning: $DOMAIN points to $DOMAIN_IP, not this server ($SERVER_IP)${NC}"
+            echo -e "${YELLOW}SSL may fail. Continue anyway? (y/n)${NC}"
+            read -r answer
+            if [ "$answer" != "y" ]; then
+                echo -e "${RED}❌ SSL installation cancelled${NC}"
+                return 1
+            fi
+        fi
+    fi
+    
+    # Check if certbot is installed
+    if ! command -v certbot &> /dev/null; then
+        echo -e "${YELLOW}📦 Installing Certbot...${NC}"
+        apt update
+        apt install -y certbot python3-certbot-nginx
+    fi
+    
+    # Set email
+    if [ -z "$EMAIL" ]; then
+        EMAIL="admin@$DOMAIN"
+    fi
+    
+    # Update Nginx server_name if still underscore
+    if grep -q "server_name _;" /etc/nginx/sites-available/wordpress; then
+        echo -e "${YELLOW}📝 Updating Nginx server_name to $DOMAIN...${NC}"
+        sed -i "s/server_name _;/server_name $DOMAIN;/" /etc/nginx/sites-available/wordpress
+        nginx -t && systemctl reload nginx
+    fi
+    
+    # Install SSL certificate
+    echo -e "${YELLOW}⚡ Obtaining SSL certificate from Let's Encrypt...${NC}"
+    certbot --nginx -d $DOMAIN --non-interactive --agree-tos --email $EMAIL --redirect
+    
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✅ SSL certificate installed successfully!${NC}"
+        
+        # Install WordPress plugins
+        install_wp_plugins "$DOMAIN"
+        
+        # Update WordPress URLs to HTTPS
+        if command -v wp &> /dev/null; then
+            cd /var/www/html/wordpress
+            wp option update home "https://$DOMAIN" --allow-root
+            wp option update siteurl "https://$DOMAIN" --allow-root
+            echo -e "${GREEN}   ✅ WordPress URLs updated to HTTPS${NC}"
+        fi
+        
+        # Add SSL renewal cron job (twice daily)
+        if ! grep -q "certbot renew" /etc/crontab; then
+            echo "0 */12 * * * root certbot renew --quiet --post-hook 'systemctl reload nginx'" >> /etc/crontab
+            echo -e "${GREEN}   ✅ SSL auto-renewal configured${NC}"
+        fi
+        
+        echo ""
+        echo -e "${GREEN}📋 SSL Information:${NC}"
+        echo "   • Domain: $DOMAIN"
+        echo "   • Expiry: $(certbot certificates | grep -A2 $DOMAIN | grep Expiry | cut -d: -f2-)"
+        echo "   • Path: /etc/letsencrypt/live/$DOMAIN/"
+        echo ""
+        echo -e "${GREEN}🔌 Plugins Installed:${NC}"
+        echo "   • Nginx Helper - Configured for FastCGI cache"
+        echo "   • Redis Object Cache - Enabled and connected"
+        echo ""
+        echo -e "${YELLOW}📌 Next Steps:${NC}"
+        echo "   1. Complete WordPress installation at: https://$DOMAIN"
+        echo "   2. Login to wp-admin and verify plugins are active"
+        echo "   3. Check Redis cache status in WordPress > Tools > Redis"
+        
+        # Reload nginx
+        systemctl reload nginx
+    else
+        echo -e "${RED}❌ SSL installation failed${NC}"
+        echo -e "${YELLOW}Possible issues:${NC}"
+        echo "   • Domain doesn't point to this server"
+        echo "   • Port 80 is blocked by firewall"
+        echo "   • Domain not propagated yet (wait 5-10 minutes)"
+        echo ""
+        echo -e "${YELLOW}Try manually:${NC}"
+        echo "   certbot --nginx -d $DOMAIN"
+        return 1
     fi
 }
 
@@ -484,6 +627,16 @@ case "$1" in
         fi
         
         echo -e "${GREEN}✅ Domain updated to $2${NC}"
+        echo -e "${YELLOW}💡 Next: Run 'easyinstall ssl $2' to add SSL and plugins${NC}"
+        ;;
+        
+    ssl)
+        if [ -z "$2" ]; then
+            echo -e "${RED}Usage: easyinstall ssl yourdomain.com [email]${NC}"
+            echo -e "${YELLOW}Example: easyinstall ssl example.com admin@example.com${NC}"
+            exit 1
+        fi
+        install_ssl "$2" "$3"
         ;;
         
     migrate)
@@ -502,7 +655,7 @@ case "$1" in
         nginx -t && systemctl reload nginx
         
         echo -e "${GREEN}✅ Migration complete for $2${NC}"
-        echo -e "${YELLOW}Next: Run 'certbot --nginx -d $2' for SSL${NC}"
+        echo -e "${YELLOW}💡 Next: Run 'easyinstall ssl $2' to add SSL and plugins${NC}"
         ;;
         
     panel)
@@ -536,6 +689,14 @@ case "$1" in
                     echo "define('WP_CACHE', true);" >> /var/www/html/wordpress/wp-config.php
                 fi
                 echo -e "${GREEN}✅ Redis cache enabled in WordPress${NC}"
+                
+                # Install Redis plugin if wp-cli exists
+                if command -v wp &> /dev/null; then
+                    cd /var/www/html/wordpress
+                    wp plugin install redis-cache --activate --allow-root
+                    wp redis enable --allow-root
+                    echo -e "${GREEN}   ✅ Redis plugin installed and activated${NC}"
+                fi
             fi
         fi
         ;;
@@ -553,25 +714,64 @@ case "$1" in
         echo "   • Disk Usage: $(df -h / | awk 'NR==2 {print $5}')"
         echo "   • Memory Usage: $(free -h | awk '/Mem:/ {print $3"/"$2}')"
         echo "   • Cache Size: $(du -sh /var/cache/nginx 2>/dev/null | cut -f1)"
+        
+        # Check SSL certificates
+        if [ -d "/etc/letsencrypt/live" ]; then
+            echo ""
+            echo -e "${GREEN}🔐 SSL Certificates:${NC}"
+            certbot certificates 2>/dev/null | grep -E "Certificate Name|Expiry Date" | sed 's/^/   /'
+        fi
+        
+        # Check WordPress plugins
+        if [ -f /var/www/html/wordpress/wp-config.php ] && command -v wp &> /dev/null; then
+            echo ""
+            echo -e "${GREEN}🔌 WordPress Plugins:${NC}"
+            cd /var/www/html/wordpress
+            wp plugin list --status=active --field=name --allow-root 2>/dev/null | sed 's/^/   • /'
+        fi
         ;;
         
     help)
-        echo "EasyInstall Commands:"
+        echo -e "${GREEN}EasyInstall Enterprise Stack v2.0 Commands:${NC}"
+        echo ""
+        echo -e "${YELLOW}🌐 Domain & SSL:${NC}"
         echo "  easyinstall domain <domain>    - Change WordPress domain"
         echo "  easyinstall migrate <domain>   - Migrate from IP to domain"
+        echo "  easyinstall ssl <domain> [email] - Install SSL + WordPress plugins"
+        echo ""
+        echo -e "${YELLOW}🏢 Panel Management:${NC}"
         echo "  easyinstall panel enable       - Enable multi-site mode"
+        echo ""
+        echo -e "${YELLOW}⚡ Performance:${NC}"
         echo "  easyinstall cache clear        - Clear FastCGI cache"
         echo "  easyinstall redis enable       - Enable Redis object cache"
+        echo ""
+        echo -e "${YELLOW}📊 System:${NC}"
         echo "  easyinstall status             - Show system status"
         echo "  easyinstall help                - Show this help"
+        echo ""
+        echo -e "${YELLOW}📌 Examples:${NC}"
+        echo "  easyinstall domain example.com"
+        echo "  easyinstall ssl example.com admin@example.com"
+        echo "  easyinstall migrate example.com"
+        echo "  easyinstall status"
+        echo ""
+        echo -e "${GREEN}✨ SSL Features:${NC}"
+        echo "  • Auto-installs Let's Encrypt SSL"
+        echo "  • Installs & configures Nginx Helper plugin"
+        echo "  • Installs & enables Redis Object Cache plugin"
+        echo "  • Updates WordPress URLs to HTTPS"
+        echo "  • Sets up auto-renewal"
         ;;
         
     *)
-        echo "EasyInstall Enterprise Stack v2.0"
-        echo "Usage: easyinstall [command]"
+        echo -e "${GREEN}EasyInstall Enterprise Stack v2.0${NC}"
+        echo -e "Usage: ${YELLOW}easyinstall [command]${NC}"
         echo ""
         echo "Available commands:"
-        echo "  domain, migrate, panel, cache, redis, status, help"
+        echo "  domain, ssl, migrate, panel, cache, redis, status, help"
+        echo ""
+        echo "Run 'easyinstall help' for detailed usage"
         ;;
 esac
 EOF
@@ -581,7 +781,7 @@ EOF
     # Create cache clear cron
     echo "0 3 * * * root /usr/local/bin/easyinstall cache clear > /dev/null 2>&1" > /etc/cron.d/easyinstall-cache
     
-    echo -e "${GREEN}   ✅ Management commands installed${NC}"
+    echo -e "${GREEN}   ✅ Management commands installed (SSL feature added)${NC}"
 }
 
 # ============================================
@@ -664,8 +864,10 @@ COMMANDS:
   easyinstall status              - Check system status
   easyinstall domain yourdomain.com - Change domain
   easyinstall migrate yourdomain.com - Migrate to domain
+  easyinstall ssl yourdomain.com  - Install SSL + WordPress plugins
   easyinstall cache clear         - Clear FastCGI cache
   easyinstall panel enable        - Enable multi-site mode
+  easyinstall redis enable        - Enable Redis object cache
 
 FIREWALL:
   Allowed ports: 22, 80, 443
@@ -698,6 +900,7 @@ EOF
     echo "🔧 Available commands:"
     echo "   easyinstall status              - Check status"
     echo "   easyinstall domain yourdomain.com - Add domain"
+    echo "   easyinstall ssl yourdomain.com  - Add SSL + plugins"
     echo "   easyinstall cache clear         - Clear cache"
     echo ""
     echo "✅ PHP-FPM Service: Enabled successfully"
