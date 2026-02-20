@@ -3,7 +3,7 @@
 set -e
 
 # ============================================
-# EasyInstall Enterprise Stack v2.0
+# EasyInstall Enterprise Stack v2.1
 # Ultra-Optimized 512MB VPS → Enterprise Grade Hosting Engine
 # ============================================
 
@@ -13,7 +13,7 @@ RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-echo -e "${GREEN}🚀 EasyInstall Enterprise Stack v2.0${NC}"
+echo -e "${GREEN}🚀 EasyInstall Enterprise Stack v2.1${NC}"
 echo -e "${GREEN}📦 Ultra-Optimized WordPress Hosting Engine${NC}"
 echo ""
 
@@ -111,20 +111,34 @@ EOF
 }
 
 # ============================================
-# Install Required Packages
+# Install Required Packages (with newest PHP)
 # ============================================
 install_packages() {
-    echo -e "${YELLOW}📦 Installing enterprise stack...${NC}"
+    echo -e "${YELLOW}📦 Installing enterprise stack with latest PHP...${NC}"
     
+    # Add PHP repository for latest version
     apt update
-    apt install -y nginx mariadb-server php-fpm php-mysql \
-        php-cli php-curl php-xml php-mbstring php-zip \
-        php-gd php-imagick php-opcache php-redis \
+    apt install -y software-properties-common curl wget
+    add-apt-repository ppa:ondrej/php -y
+    apt update
+    
+    # Get latest PHP version
+    PHP_VERSION=$(apt-cache search '^php8\.[0-9]-fpm$' | sort -r | head -1 | cut -d' ' -f1 | sed 's/-fpm//')
+    if [ -z "$PHP_VERSION" ]; then
+        PHP_VERSION="php8.2"  # Fallback
+    fi
+    
+    echo -e "${YELLOW}   📌 Installing PHP ${PHP_VERSION}...${NC}"
+    
+    apt install -y nginx mariadb-server ${PHP_VERSION}-fpm ${PHP_VERSION}-mysql \
+        ${PHP_VERSION}-cli ${PHP_VERSION}-curl ${PHP_VERSION}-xml ${PHP_VERSION}-mbstring \
+        ${PHP_VERSION}-zip ${PHP_VERSION}-gd ${PHP_VERSION}-imagick ${PHP_VERSION}-opcache \
+        ${PHP_VERSION}-redis ${PHP_VERSION}-intl \
         redis-server ufw fail2ban curl wget unzip openssl \
         certbot python3-certbot-nginx \
         htop neofetch git cron dnsutils
         
-    echo -e "${GREEN}   ✅ All packages installed${NC}"
+    echo -e "${GREEN}   ✅ All packages installed with PHP ${PHP_VERSION}${NC}"
 }
 
 # ============================================
@@ -231,9 +245,10 @@ configure_nginx() {
         CACHE_INACTIVE="120m"
     fi
     
-    # Create cache directory
+    # Create cache directory with proper permissions
     mkdir -p /var/cache/nginx
     chown -R www-data:www-data /var/cache/nginx
+    chmod -R 755 /var/cache/nginx
     
     # Create main Nginx config with cache
     cat > /etc/nginx/sites-available/wordpress <<EOF
@@ -329,7 +344,7 @@ EOF
 }
 
 # ============================================
-# WordPress Installation
+# WordPress Installation (Fixed permissions)
 # ============================================
 install_wordpress() {
     echo -e "${YELLOW}📝 Installing WordPress...${NC}"
@@ -343,11 +358,22 @@ install_wordpress() {
     
     # Extract
     unzip -o latest.zip
-    rm -f latest.zip
     
-    # Set permissions
+    # Create necessary directories with proper permissions
+    mkdir -p wordpress/wp-content/upgrade
+    mkdir -p wordpress/wp-content/plugins
+    mkdir -p wordpress/wp-content/themes
+    mkdir -p wordpress/wp-content/uploads
+    mkdir -p wordpress/wp-content/cache
+    
+    # Set permissions BEFORE plugin installation
     chown -R www-data:www-data wordpress
     chmod -R 755 wordpress
+    chmod -R 775 wordpress/wp-content
+    chmod -R 775 wordpress/wp-content/upgrade
+    chmod -R 775 wordpress/wp-content/plugins
+    chmod -R 775 wordpress/wp-content/themes
+    chmod -R 775 wordpress/wp-content/uploads
     
     # Configure wp-config
     cp wordpress/wp-config-sample.php wordpress/wp-config.php
@@ -374,9 +400,18 @@ define('WP_MAX_MEMORY_LIMIT', '256M');
 define('WP_POST_REVISIONS', 5);
 define('EMPTY_TRASH_DAYS', 7);
 define('DISALLOW_FILE_EDIT', true);
+
+/* Ensure writable directories */
+define('FS_METHOD', 'direct');
 EOF
     
-    echo -e "${GREEN}   ✅ WordPress installed${NC}"
+    # Final permission check
+    chown -R www-data:www-data wordpress
+    chmod -R 755 wordpress
+    
+    rm -f latest.zip
+    
+    echo -e "${GREEN}   ✅ WordPress installed with proper permissions${NC}"
 }
 
 # ============================================
@@ -437,7 +472,7 @@ EOF
 }
 
 # ============================================
-# Install Management Commands (FIXED SSL VERSION)
+# Install Management Commands (Enhanced with new features)
 # ============================================
 install_commands() {
     echo -e "${YELLOW}🔧 Installing management commands...${NC}"
@@ -445,7 +480,7 @@ install_commands() {
     # Create commands directory
     mkdir -p /usr/local/bin
     
-    # Main easyinstall command with FIXED SSL feature
+    # Main easyinstall command with enhanced features
     cat > /usr/local/bin/easyinstall <<'EOF'
 #!/bin/bash
 
@@ -455,18 +490,16 @@ RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# Function to get PHP version for status command
-get_php_fpm_service() {
+# Function to get PHP version
+get_php_version() {
     if command -v php >/dev/null 2>&1; then
-        PHP_VER=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
-        echo "php$PHP_VER-fpm"
+        php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;'
     else
-        # Try to detect from systemd
-        systemctl list-units --type=service --all 2>/dev/null | grep -o "php[0-9]\.[0-9]*-fpm\.service" | head -1 || echo "php-fpm"
+        echo "8.2"  # Default
     fi
 }
 
-# Function to install WordPress plugins
+# Function to install WordPress plugins (Fixed permissions)
 install_wp_plugins() {
     local DOMAIN=$1
     
@@ -482,30 +515,34 @@ install_wp_plugins() {
     
     cd /var/www/html/wordpress
     
+    # Ensure proper permissions
+    chown -R www-data:www-data /var/www/html/wordpress
+    chmod -R 775 /var/www/html/wordpress/wp-content
+    
     # Install and configure Nginx Helper plugin
     echo -e "   📥 Installing Nginx Helper plugin..."
-    wp plugin install nginx-helper --activate --allow-root
+    sudo -u www-data wp plugin install nginx-helper --activate
     
     # Configure Nginx Helper
-    wp option update nginx_helper_options --format=json --allow-root '{
+    sudo -u www-data wp option update nginx_helper_options '{
         "enable_purge": "1",
         "cache_method": "enable_fastcgi",
         "purge_method": "get_request",
         "redis_hostname": "127.0.0.1",
         "redis_port": "6379"
-    }'
+    }' --format=json
     
     # Install and configure Redis Object Cache plugin
     echo -e "   📥 Installing Redis Object Cache plugin..."
-    wp plugin install redis-cache --activate --allow-root
+    sudo -u www-data wp plugin install redis-cache --activate
     
     # Enable Redis cache
-    wp redis enable --allow-root
+    sudo -u www-data wp redis enable
     
     echo -e "${GREEN}   ✅ WordPress plugins installed and configured${NC}"
 }
 
-# Function to install SSL certificate (FIXED VERSION)
+# Function to install SSL certificate
 install_ssl() {
     local DOMAIN=$1
     local EMAIL=$2
@@ -573,6 +610,9 @@ install_ssl() {
     
     if [ $CERT_RESULT -eq 0 ]; then
         echo -e "${GREEN}✅ SSL certificate obtained successfully!${NC}"
+        
+        # Get PHP version
+        PHP_VERSION=$(get_php_version)
         
         # Update Nginx config to use SSL
         cat > /etc/nginx/sites-available/wordpress <<NGINXEOF
@@ -679,8 +719,8 @@ NGINXEOF
         # Update WordPress URLs to HTTPS
         if command -v wp &> /dev/null; then
             cd /var/www/html/wordpress
-            wp option update home "https://$DOMAIN" --allow-root
-            wp option update siteurl "https://$DOMAIN" --allow-root
+            sudo -u www-data wp option update home "https://$DOMAIN"
+            sudo -u www-data wp option update siteurl "https://$DOMAIN"
             echo -e "${GREEN}   ✅ WordPress URLs updated to HTTPS${NC}"
         fi
         
@@ -719,27 +759,200 @@ NGINXEOF
     fi
 }
 
+# Function to reinstall WordPress
+reinstall_wordpress() {
+    echo -e "${YELLOW}🔄 Reinstalling WordPress...${NC}"
+    
+    # Backup existing WordPress
+    if [ -d "/var/www/html/wordpress" ]; then
+        BACKUP_DIR="/root/wordpress-backup-$(date +%Y%m%d-%H%M%S)"
+        echo -e "   📦 Creating backup at $BACKUP_DIR"
+        cp -r /var/www/html/wordpress $BACKUP_DIR
+        mysqldump --all-databases > "$BACKUP_DIR/databases.sql" 2>/dev/null || true
+    fi
+    
+    # Remove old WordPress
+    rm -rf /var/www/html/wordpress
+    
+    # Download fresh WordPress
+    cd /var/www/html
+    curl -O https://wordpress.org/latest.zip
+    unzip -o latest.zip
+    rm -f latest.zip
+    
+    # Create necessary directories
+    mkdir -p wordpress/wp-content/upgrade
+    mkdir -p wordpress/wp-content/plugins
+    mkdir -p wordpress/wp-content/themes
+    mkdir -p wordpress/wp-content/uploads
+    mkdir -p wordpress/wp-content/cache
+    
+    # Set permissions
+    chown -R www-data:www-data wordpress
+    chmod -R 755 wordpress
+    chmod -R 775 wordpress/wp-content
+    
+    echo -e "${GREEN}✅ WordPress reinstalled successfully${NC}"
+    echo -e "${YELLOW}📌 Note: Database was not modified. Backup saved at $BACKUP_DIR${NC}"
+}
+
+# Enhanced update function
+update_domain() {
+    local DOMAIN=$1
+    local PHP_V=$2
+    local REINSTALL=$3
+    local CACHE=$4
+    local SSL=$5
+    local CLEARCACHE=$6
+    
+    echo -e "${YELLOW}🌐 Updating domain configuration for $DOMAIN...${NC}"
+    
+    # Update PHP version if specified
+    if [ -n "$PHP_V" ] && [ "$PHP_V" != "false" ]; then
+        echo -e "   📌 Switching to PHP $PHP_V..."
+        
+        # Install PHP version if not exists
+        if ! dpkg -l | grep -q "php$PHP_V-fpm"; then
+            apt update
+            apt install -y php$PHP_V-fpm php$PHP_V-mysql php$PHP_V-cli \
+                php$PHP_V-curl php$PHP_V-xml php$PHP_V-mbstring php$PHP_V-zip \
+                php$PHP_V-gd php$PHP_V-imagick php$PHP_V-opcache php$PHP_V-redis \
+                php$PHP_V-intl
+        fi
+        
+        # Update Nginx config to use new PHP version
+        sed -i "s|unix:/run/php/php[0-9]\.[0-9]-fpm.sock|unix:/run/php/php$PHP_V-fpm.sock|g" /etc/nginx/sites-available/wordpress
+        
+        # Disable old PHP-FPM and enable new
+        systemctl stop php*-fpm 2>/dev/null || true
+        systemctl start php$PHP_V-fpm
+        systemctl enable php$PHP_V-fpm
+        
+        echo -e "${GREEN}   ✅ PHP version updated to $PHP_V${NC}"
+    fi
+    
+    # Reinstall WordPress if requested
+    if [ "$REINSTALL" = "true" ]; then
+        reinstall_wordpress
+    fi
+    
+    # Clear cache if requested
+    if [ "$CLEARCACHE" = "true" ]; then
+        echo -e "   🧹 Clearing FastCGI cache..."
+        rm -rf /var/cache/nginx/*
+        systemctl reload nginx
+        echo -e "${GREEN}   ✅ Cache cleared${NC}"
+    fi
+    
+    # Update Nginx server_name
+    sed -i "s/server_name [^;]*;/server_name $DOMAIN;/g" /etc/nginx/sites-available/wordpress
+    nginx -t && systemctl reload nginx
+    
+    # Update WordPress URLs if wp-cli exists
+    if command -v wp &> /dev/null; then
+        cd /var/www/html/wordpress
+        PROTOCOL="http"
+        if [ "$SSL" = "true" ]; then
+            PROTOCOL="https"
+        fi
+        sudo -u www-data wp option update home "$PROTOCOL://$DOMAIN"
+        sudo -u www-data wp option update siteurl "$PROTOCOL://$DOMAIN"
+        echo -e "${GREEN}   ✅ WordPress URLs updated to $PROTOCOL://$DOMAIN${NC}"
+    fi
+    
+    # Enable cache if requested
+    if [ "$CACHE" = "true" ]; then
+        if ! grep -q "WP_CACHE" /var/www/html/wordpress/wp-config.php; then
+            echo "define('WP_CACHE', true);" >> /var/www/html/wordpress/wp-config.php
+            echo -e "${GREEN}   ✅ Cache enabled in WordPress${NC}"
+        fi
+    fi
+    
+    # Install SSL if requested
+    if [ "$SSL" = "true" ]; then
+        install_ssl "$DOMAIN"
+    fi
+    
+    echo -e "${GREEN}✅ Domain configuration updated successfully for $DOMAIN${NC}"
+}
+
+# Function to get PHP-FPM service
+get_php_fpm_service() {
+    if command -v php >/dev/null 2>&1; then
+        PHP_VER=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
+        echo "php$PHP_VER-fpm"
+    else
+        # Try to detect from systemd
+        systemctl list-units --type=service --all 2>/dev/null | grep -o "php[0-9]\.[0-9]*-fpm\.service" | head -1 | sed 's/\.service//' || echo "php8.2-fpm"
+    fi
+}
+
+# Parse update command options
+parse_update_options() {
+    local DOMAIN=""
+    local PHP_V="false"
+    local REINSTALL="false"
+    local CACHE="false"
+    local SSL="false"
+    local CLEARCACHE="false"
+    
+    # First argument is always the domain
+    DOMAIN="$2"
+    
+    # Parse remaining arguments
+    shift 2
+    for arg in "$@"; do
+        case $arg in
+            -php*v=*)
+                PHP_V="${arg#*=}"
+                ;;
+            -reinstall)
+                REINSTALL="true"
+                ;;
+            -cache=*)
+                CACHE="${arg#*=}"
+                ;;
+            -ssl=*)
+                SSL="${arg#*=}"
+                ;;
+            -clearcache)
+                CLEARCACHE="true"
+                ;;
+        esac
+    done
+    
+    update_domain "$DOMAIN" "$PHP_V" "$REINSTALL" "$CACHE" "$SSL" "$CLEARCACHE"
+}
+
+# Main command handler
 case "$1" in
     domain)
         if [ -z "$2" ]; then
             echo -e "${RED}Usage: easyinstall domain yourdomain.com${NC}"
             exit 1
         fi
-        echo -e "${YELLOW}🌐 Changing domain to $2...${NC}"
         
-        # Update Nginx config
-        sed -i "s/server_name _;/server_name $2;/" /etc/nginx/sites-available/wordpress
-        nginx -t && systemctl reload nginx
-        
-        # Update WordPress URLs if wp-cli exists
-        if command -v wp &> /dev/null; then
-            cd /var/www/html/wordpress
-            wp option update home "http://$2"
-            wp option update siteurl "http://$2"
+        # Check for advanced options
+        if [ $# -gt 2 ]; then
+            parse_update_options "$@"
+        else
+            # Simple domain update
+            echo -e "${YELLOW}🌐 Changing domain to $2...${NC}"
+            
+            # Update Nginx config
+            sed -i "s/server_name _;/server_name $2;/" /etc/nginx/sites-available/wordpress
+            nginx -t && systemctl reload nginx
+            
+            # Update WordPress URLs if wp-cli exists
+            if command -v wp &> /dev/null; then
+                cd /var/www/html/wordpress
+                sudo -u www-data wp option update home "http://$2"
+                sudo -u www-data wp option update siteurl "http://$2"
+            fi
+            
+            echo -e "${GREEN}✅ Domain updated to $2${NC}"
+            echo -e "${YELLOW}💡 Next: Run 'easyinstall ssl $2' to add SSL and plugins${NC}"
         fi
-        
-        echo -e "${GREEN}✅ Domain updated to $2${NC}"
-        echo -e "${YELLOW}💡 Next: Run 'easyinstall ssl $2' to add SSL and plugins${NC}"
         ;;
         
     ssl)
@@ -805,12 +1018,16 @@ case "$1" in
                 # Install Redis plugin if wp-cli exists
                 if command -v wp &> /dev/null; then
                     cd /var/www/html/wordpress
-                    wp plugin install redis-cache --activate --allow-root
-                    wp redis enable --allow-root
+                    sudo -u www-data wp plugin install redis-cache --activate
+                    sudo -u www-data wp redis enable
                     echo -e "${GREEN}   ✅ Redis plugin installed and activated${NC}"
                 fi
             fi
         fi
+        ;;
+        
+    reinstall)
+        reinstall_wordpress
         ;;
         
     status)
@@ -839,17 +1056,28 @@ case "$1" in
             echo ""
             echo -e "${GREEN}🔌 WordPress Plugins:${NC}"
             cd /var/www/html/wordpress
-            wp plugin list --status=active --field=name --allow-root 2>/dev/null | sed 's/^/   • /'
+            sudo -u www-data wp plugin list --status=active --field=name 2>/dev/null | sed 's/^/   • /'
         fi
         ;;
         
     help)
-        echo -e "${GREEN}EasyInstall Enterprise Stack v2.0 Commands:${NC}"
+        echo -e "${GREEN}EasyInstall Enterprise Stack v2.1 Commands:${NC}"
         echo ""
         echo -e "${YELLOW}🌐 Domain & SSL:${NC}"
-        echo "  easyinstall domain <domain>    - Change WordPress domain"
+        echo "  easyinstall domain <domain>                    - Change WordPress domain"
+        echo "  easyinstall domain <domain> [options]          - Advanced domain update"
+        echo "    Options:"
+        echo "      -php*v=<version>     Switch PHP version (e.g., -php*v=8.2)"
+        echo "      -reinstall           Reinstall WordPress"
+        echo "      -cache=<on/off>      Enable/disable cache"
+        echo "      -ssl=<on/off>        Enable/disable SSL"
+        echo "      -clearcache          Clear cache"
+        echo ""
+        echo "  Example: easyinstall domain example.com -php*v=8.2 -ssl=on -cache=on -clearcache"
+        echo ""
         echo "  easyinstall migrate <domain>   - Migrate from IP to domain"
         echo "  easyinstall ssl <domain> [email] - Install SSL + WordPress plugins"
+        echo "  easyinstall reinstall          - Reinstall WordPress (keeps database)"
         echo ""
         echo -e "${YELLOW}🏢 Panel Management:${NC}"
         echo "  easyinstall panel enable       - Enable multi-site mode"
@@ -862,12 +1090,6 @@ case "$1" in
         echo "  easyinstall status             - Show system status"
         echo "  easyinstall help                - Show this help"
         echo ""
-        echo -e "${YELLOW}📌 Examples:${NC}"
-        echo "  easyinstall domain example.com"
-        echo "  easyinstall ssl example.com admin@example.com"
-        echo "  easyinstall migrate example.com"
-        echo "  easyinstall status"
-        echo ""
         echo -e "${GREEN}✨ SSL Features:${NC}"
         echo "  • Auto-installs Let's Encrypt SSL"
         echo "  • Installs & configures Nginx Helper plugin"
@@ -877,13 +1099,16 @@ case "$1" in
         ;;
         
     *)
-        echo -e "${GREEN}EasyInstall Enterprise Stack v2.0${NC}"
+        echo -e "${GREEN}EasyInstall Enterprise Stack v2.1${NC}"
         echo -e "Usage: ${YELLOW}easyinstall [command]${NC}"
         echo ""
         echo "Available commands:"
-        echo "  domain, ssl, migrate, panel, cache, redis, status, help"
+        echo "  domain, ssl, migrate, panel, cache, redis, reinstall, status, help"
         echo ""
         echo "Run 'easyinstall help' for detailed usage"
+        echo ""
+        echo -e "${YELLOW}Advanced domain update example:${NC}"
+        echo "  easyinstall domain example.com -php*v=8.2 -ssl=on -cache=on -clearcache"
         ;;
 esac
 EOF
@@ -893,7 +1118,7 @@ EOF
     # Create cache clear cron
     echo "0 3 * * * root /usr/local/bin/easyinstall cache clear > /dev/null 2>&1" > /etc/cron.d/easyinstall-cache
     
-    echo -e "${GREEN}   ✅ Management commands installed (SSL feature added)${NC}"
+    echo -e "${GREEN}   ✅ Management commands installed (Enhanced version)${NC}"
     
     # Create alias for common typos
     echo "alias asyinstall='easyinstall'" >> /root/.bashrc
@@ -902,12 +1127,12 @@ EOF
 }
 
 # ============================================
-# Final Setup - FIXED VERSION
+# Final Setup
 # ============================================
 finalize() {
     echo -e "${YELLOW}🎯 Finalizing installation...${NC}"
     
-    # Enable services at boot - FIXED: No glob pattern
+    # Enable services at boot
     echo -e "${YELLOW}   📌 Enabling services...${NC}"
     
     # Enable standard services
@@ -916,49 +1141,43 @@ finalize() {
     systemctl enable redis-server >/dev/null 2>&1
     systemctl enable fail2ban >/dev/null 2>&1
     
-    # FIX: Properly enable PHP-FPM by finding exact version
+    # Properly enable PHP-FPM
     echo -e "   🔍 Detecting PHP-FPM service..."
     
-    # Method 1: Get PHP version from variable
+    # Get PHP version from installed packages
+    PHP_VERSION=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;' 2>/dev/null)
+    
     if [ -n "$PHP_VERSION" ]; then
         PHP_FPM_SERVICE="php$PHP_VERSION-fpm"
         if systemctl list-units --type=service --all | grep -q "$PHP_FPM_SERVICE"; then
             systemctl enable $PHP_FPM_SERVICE >/dev/null 2>&1
+            systemctl start $PHP_FPM_SERVICE >/dev/null 2>&1
             echo -e "${GREEN}   ✅ PHP-FPM enabled: $PHP_FPM_SERVICE${NC}"
         else
-            # Method 2: Try common PHP versions
-            for version in 8.2 8.1 8.0 7.4; do
+            # Try to find any PHP-FPM service
+            for version in 8.3 8.2 8.1 8.0 7.4; do
                 if systemctl list-units --type=service --all | grep -q "php$version-fpm"; then
                     systemctl enable php$version-fpm >/dev/null 2>&1
+                    systemctl start php$version-fpm >/dev/null 2>&1
                     echo -e "${GREEN}   ✅ PHP-FPM enabled: php$version-fpm${NC}"
                     PHP_FPM_SERVICE="php$version-fpm"
                     break
                 fi
             done
         fi
-    else
-        # Method 3: Detect from system
-        PHP_FPM_SERVICE=$(systemctl list-units --type=service --all | grep -o "php[0-9]\.[0-9]*-fpm\.service" | head -1)
-        if [ -n "$PHP_FPM_SERVICE" ]; then
-            systemctl enable $PHP_FPM_SERVICE >/dev/null 2>&1
-            echo -e "${GREEN}   ✅ PHP-FPM enabled: $PHP_FPM_SERVICE${NC}"
-        else
-            # Method 4: Last resort - try to find service file
-            for service_file in /lib/systemd/system/php*-fpm.service /etc/systemd/system/php*-fpm.service; do
-                if [ -f "$service_file" ]; then
-                    service_name=$(basename "$service_file")
-                    systemctl enable $service_name >/dev/null 2>&1
-                    echo -e "${GREEN}   ✅ PHP-FPM enabled: $service_name${NC}"
-                    break
-                fi
-            done
-        fi
+    fi
+    
+    # Final permission check for WordPress
+    if [ -d "/var/www/html/wordpress" ]; then
+        chown -R www-data:www-data /var/www/html/wordpress
+        chmod -R 755 /var/www/html/wordpress
+        chmod -R 775 /var/www/html/wordpress/wp-content
     fi
     
     # Create info file
     cat > /root/easyinstall-info.txt <<EOF
 ========================================
-EasyInstall Enterprise Stack v2.0
+EasyInstall Enterprise Stack v2.1
 Installation Date: $(date)
 ========================================
 
@@ -978,13 +1197,15 @@ SERVICES:
   • Redis: Port 6379
 
 COMMANDS:
-  easyinstall status              - Check system status
-  easyinstall domain yourdomain.com - Change domain
-  easyinstall migrate yourdomain.com - Migrate to domain
-  easyinstall ssl yourdomain.com  - Install SSL + WordPress plugins
-  easyinstall cache clear         - Clear FastCGI cache
-  easyinstall panel enable        - Enable multi-site mode
-  easyinstall redis enable        - Enable Redis object cache
+  easyinstall status                    - Check system status
+  easyinstall domain yourdomain.com     - Change domain
+  easyinstall domain yourdomain.com -php*v=8.2 -ssl=on -cache=on -clearcache  - Advanced update
+  easyinstall migrate yourdomain.com    - Migrate to domain
+  easyinstall ssl yourdomain.com        - Install SSL + WordPress plugins
+  easyinstall reinstall                 - Reinstall WordPress
+  easyinstall cache clear                - Clear FastCGI cache
+  easyinstall panel enable               - Enable multi-site mode
+  easyinstall redis enable               - Enable Redis object cache
 
 FIREWALL:
   Allowed ports: 22, 80, 443
@@ -1011,16 +1232,21 @@ EOF
     echo ""
     echo "⚡ FastCGI Cache: Active"
     echo "🛡️  Firewall: Active (ports 22,80,443)"
-    echo ""
     echo "📝 Info saved to: /root/easyinstall-info.txt"
     echo ""
-    echo "🔧 Available commands:"
-    echo "   easyinstall status              - Check status"
-    echo "   easyinstall domain yourdomain.com - Add domain"
-    echo "   easyinstall ssl yourdomain.com  - Add SSL + plugins"
-    echo "   easyinstall cache clear         - Clear cache"
+    echo -e "${GREEN}✨ New Features:${NC}"
+    echo "   • PHP ${PHP_VERSION} (latest stable with intl module)"
+    echo "   • Fixed plugin installation permissions"
+    echo "   • Advanced domain update with options"
     echo ""
-    echo "✅ PHP-FPM Service: Enabled successfully"
+    echo "🔧 Available commands:"
+    echo "   easyinstall status                    - Check status"
+    echo "   easyinstall domain yourdomain.com     - Add domain"
+    echo "   easyinstall ssl yourdomain.com        - Add SSL + plugins"
+    echo "   easyinstall reinstall                  - Reinstall WordPress"
+    echo ""
+    echo -e "${YELLOW}🚀 Advanced domain update:${NC}"
+    echo "   easyinstall domain example.com -php*v=8.2 -ssl=on -cache=on -clearcache"
     echo ""
     echo "============================================"
     echo -e "${NC}"
