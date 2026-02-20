@@ -437,7 +437,7 @@ EOF
 }
 
 # ============================================
-# Install Management Commands (WITH SSL INTEGRATED)
+# Install Management Commands (FIXED SSL VERSION)
 # ============================================
 install_commands() {
     echo -e "${YELLOW}🔧 Installing management commands...${NC}"
@@ -445,7 +445,7 @@ install_commands() {
     # Create commands directory
     mkdir -p /usr/local/bin
     
-    # Main easyinstall command with SSL feature
+    # Main easyinstall command with FIXED SSL feature
     cat > /usr/local/bin/easyinstall <<'EOF'
 #!/bin/bash
 
@@ -505,7 +505,7 @@ install_wp_plugins() {
     echo -e "${GREEN}   ✅ WordPress plugins installed and configured${NC}"
 }
 
-# Function to install SSL certificate
+# Function to install SSL certificate (FIXED VERSION)
 install_ssl() {
     local DOMAIN=$1
     local EMAIL=$2
@@ -518,12 +518,18 @@ install_ssl() {
     
     echo -e "${BLUE}🔐 Installing SSL certificate for $DOMAIN...${NC}"
     
+    # Remove http:// or https:// if present
+    DOMAIN=$(echo $DOMAIN | sed 's~http[s]*://~~g' | sed 's~/.*~~')
+    
     # Check if domain points to this server
     if command -v dig &> /dev/null; then
         DOMAIN_IP=$(dig +short $DOMAIN | head -1)
+        if [ -z "$DOMAIN_IP" ]; then
+            DOMAIN_IP=$(host $DOMAIN | grep "has address" | head -1 | awk '{print $NF}')
+        fi
         SERVER_IP=$(curl -s ifconfig.me)
         
-        if [ "$DOMAIN_IP" != "$SERVER_IP" ] && [ -n "$DOMAIN_IP" ]; then
+        if [ -n "$DOMAIN_IP" ] && [ "$DOMAIN_IP" != "$SERVER_IP" ]; then
             echo -e "${RED}⚠️  Warning: $DOMAIN points to $DOMAIN_IP, not this server ($SERVER_IP)${NC}"
             echo -e "${YELLOW}SSL may fail. Continue anyway? (y/n)${NC}"
             read -r answer
@@ -553,12 +559,119 @@ install_ssl() {
         nginx -t && systemctl reload nginx
     fi
     
+    # Stop nginx temporarily for better SSL issuance
+    systemctl stop nginx
+    
     # Install SSL certificate
     echo -e "${YELLOW}⚡ Obtaining SSL certificate from Let's Encrypt...${NC}"
-    certbot --nginx -d $DOMAIN --non-interactive --agree-tos --email $EMAIL --redirect
+    certbot certonly --standalone -d $DOMAIN --non-interactive --agree-tos --email $EMAIL
     
-    if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✅ SSL certificate installed successfully!${NC}"
+    CERT_RESULT=$?
+    
+    # Start nginx again
+    systemctl start nginx
+    
+    if [ $CERT_RESULT -eq 0 ]; then
+        echo -e "${GREEN}✅ SSL certificate obtained successfully!${NC}"
+        
+        # Update Nginx config to use SSL
+        cat > /etc/nginx/sites-available/wordpress <<NGINXEOF
+# FastCGI Cache Zone
+fastcgi_cache_path /var/cache/nginx levels=1:2 keys_zone=WORDPRESS:100m inactive=60m;
+fastcgi_cache_key "\$scheme\$request_method\$host\$request_uri";
+fastcgi_cache_use_stale error timeout updating invalid_header http_500 http_503;
+fastcgi_cache_lock on;
+fastcgi_cache_valid 200 301 302 60m;
+fastcgi_cache_valid 404 1m;
+fastcgi_ignore_headers Cache-Control Expires Set-Cookie;
+
+# Redirect HTTP to HTTPS
+server {
+    listen 80;
+    listen [::]:80;
+    server_name $DOMAIN;
+    return 301 https://\$server_name\$request_uri;
+}
+
+# HTTPS Server
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    
+    server_name $DOMAIN;
+    
+    ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    
+    root /var/www/html/wordpress;
+    index index.php index.html index.htm;
+    
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-Cache \$upstream_cache_status;
+    
+    # Logs
+    access_log /var/log/nginx/wordpress_access.log;
+    error_log /var/log/nginx/wordpress_error.log;
+    
+    # Static files cache
+    location ~* \.(jpg|jpeg|png|gif|ico|css|js|woff|woff2|ttf|svg|eot)$ {
+        expires 365d;
+        add_header Cache-Control "public, immutable";
+    }
+    
+    # WordPress URLs
+    location / {
+        try_files \$uri \$uri/ /index.php?\$args;
+    }
+    
+    # PHP processing with FastCGI Cache
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php${PHP_VERSION}-fpm.sock;
+        
+        # FastCGI Cache
+        fastcgi_cache WORDPRESS;
+        fastcgi_cache_valid 200 60m;
+        fastcgi_cache_methods GET HEAD;
+        add_header X-Cache \$upstream_cache_status;
+        
+        # Skip cache for cookies
+        fastcgi_cache_bypass \$skip_cache;
+        fastcgi_no_cache \$skip_cache;
+        
+        # Define cache skip conditions
+        set \$skip_cache 0;
+        if (\$request_method = POST) {
+            set \$skip_cache 1;
+        }
+        if (\$query_string != "") {
+            set \$skip_cache 1;
+        }
+        if (\$http_cookie ~* "comment_author|wordpress_[a-f0-9]+|wp-postpass|wordpress_no_cache|wordpress_logged_in") {
+            set \$skip_cache 1;
+        }
+    }
+    
+    # Deny access to hidden files
+    location ~ /\. {
+        deny all;
+        access_log off;
+        log_not_found off;
+    }
+    
+    # Deny access to sensitive files
+    location ~ ^/(wp-config\.php|wp-config\.txt|readme\.html|license\.txt|wp-config-sample\.php) {
+        deny all;
+    }
+}
+NGINXEOF
+
+        nginx -t && systemctl reload nginx
         
         # Install WordPress plugins
         install_wp_plugins "$DOMAIN"
@@ -588,18 +701,17 @@ install_ssl() {
         echo "   • Redis Object Cache - Enabled and connected"
         echo ""
         echo -e "${YELLOW}📌 Next Steps:${NC}"
-        echo "   1. Complete WordPress installation at: https://$DOMAIN"
+        echo "   1. Complete WordPress installation at: https://$DOMAIN/wp-admin/install.php"
         echo "   2. Login to wp-admin and verify plugins are active"
         echo "   3. Check Redis cache status in WordPress > Tools > Redis"
         
-        # Reload nginx
-        systemctl reload nginx
     else
         echo -e "${RED}❌ SSL installation failed${NC}"
         echo -e "${YELLOW}Possible issues:${NC}"
         echo "   • Domain doesn't point to this server"
         echo "   • Port 80 is blocked by firewall"
         echo "   • Domain not propagated yet (wait 5-10 minutes)"
+        echo "   • Rate limited by Let's Encrypt"
         echo ""
         echo -e "${YELLOW}Try manually:${NC}"
         echo "   certbot --nginx -d $DOMAIN"
@@ -782,6 +894,11 @@ EOF
     echo "0 3 * * * root /usr/local/bin/easyinstall cache clear > /dev/null 2>&1" > /etc/cron.d/easyinstall-cache
     
     echo -e "${GREEN}   ✅ Management commands installed (SSL feature added)${NC}"
+    
+    # Create alias for common typos
+    echo "alias asyinstall='easyinstall'" >> /root/.bashrc
+    echo "alias easyintall='easyinstall'" >> /root/.bashrc
+    echo "alias easinstall='easyinstall'" >> /root/.bashrc
 }
 
 # ============================================
