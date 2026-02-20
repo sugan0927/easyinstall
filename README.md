@@ -1,6 +1,6 @@
 # 🚀 EasyInstall Enterprise Stack
 
-## Ultra-Optimized 512MB VPS → Enterprise Grade Hosting Engine Fully Tested on Debian & Ubuntu, Try Your self in Other Distro.Linux Mint and Pop!_OS
+## Ultra-Optimized 512MB VPS → Enterprise Grade Hosting Engine Fully Tested on Debian 11,12 & Ubuntu 24.04 , 22 LTS, Try Your self in Other Distro.Linux Mint and Pop!_OS
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Production Ready](https://img.shields.io/badge/Production-Ready-brightgreen.svg)]()
