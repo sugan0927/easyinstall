@@ -108,13 +108,13 @@ EasyInstall is a **production-ready, enterprise-grade WordPress hosting stack** 
 
 ### **One-Line Installation**
 ```bash
-curl -sSL https://raw.githubusercontent.com/yourusername/easyinstall/main/easyinstall.sh | bash
+curl -sSL https://raw.githubusercontent.com/sugan0927/easyinstall/main/easyinstall.sh | bash
 ```
 
 ### **Manual Installation**
 ```bash
 # Download the script
-wget https://raw.githubusercontent.com/yourusername/easyinstall/main/easyinstall.sh
+wget https://raw.githubusercontent.com/sugan0927/easyinstall/main/easyinstall.sh
 
 # Make it executable
 chmod +x easyinstall.sh
@@ -737,8 +737,8 @@ of this software and associated documentation files...
 
 ## 📞 **Contact**
 
-- **Author**: Sugandod Rai
-- **Email**: sugandodrai@gmail.com
+- **Author**: Sugan dodRai
+- **Email**: sdsugans018@gmail.com
 - **PayPal**: [https://paypal.me/sugandodrai](https://paypal.me/sugandodrai)
 - **GitHub**: [https://github.com/sugandodrai](https://github.com/sugandodrai)
 
