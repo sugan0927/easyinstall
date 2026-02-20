@@ -114,7 +114,7 @@ Creates:
 
 ### One Command Installation
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/easyinstall/main/easyinstall.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/sugan0927/easyinstall/main/easyinstall.sh | sudo bash
 ```
 
 ### After Installation
@@ -388,7 +388,7 @@ chmod +x *.sh
 ```
 
 ### Report Issues
-Found a bug? [Open an issue](https://github.com/YOUR_USERNAME/easyinstall/issues)
+Found a bug? [Open an issue](https://github.com/sugan0927/easyinstall/issues)
 
 ---
 
