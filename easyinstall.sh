@@ -3,6 +3,22 @@
 set -e
 
 # ============================================
+# ✅ FIX: Postfix Non-Interactive Configuration
+# ============================================
+export DEBIAN_FRONTEND=noninteractive
+
+# Pre-configure Postfix to avoid interactive prompts
+debconf-set-selections <<< "postfix postfix/mailname string $(hostname -f)"
+debconf-set-selections <<< "postfix postfix/main_mailer_type string 'Local only'"
+debconf-set-selections <<< "postfix postfix/destinations string localhost.localdomain, localhost"
+debconf-set-selections <<< "postfix postfix/protocols string ipv4"
+
+# Also pre-configure any other packages that might ask questions
+debconf-set-selections <<< "mariadb-server-10.5 mysql-server/root_password password root"
+debconf-set-selections <<< "mariadb-server-10.5 mysql-server/root_password_again password root"
+debconf-set-selections <<< "grub-pc grub-pc/install_devices_empty boolean true"
+
+# ============================================
 # EasyInstall Enterprise Stack v2.1
 # Ultra-Optimized 512MB VPS → Enterprise Grade Hosting Engine
 # Complete Production Ready Version with All Features
