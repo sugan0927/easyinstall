@@ -519,3 +519,17 @@ EasyInstall Enterprise Stack transforms any VPS into a **professional hosting en
 - **Multi-site capability** for agencies and resellers
 
 **Install now and experience the power of optimized hosting!**
+**Donate with PayPal**
+Scan the QR code below to make a donation via PayPal:
+
+<p align="center"> <img src="https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=https://paypal.me/yourusername&choe=UTF-8" alt="PayPal QR Code" width="250" height="250"> </p><p align="center"> <b>👉 <a href="https://paypal.me/yourusername">Click here to donate via PayPal</a></b> </p>
+**Why Donate?**
+☕ Buy me a coffee - Keep me energized for coding
+
+🚀 Faster development - More features, quicker releases
+
+💡 Better support - Priority bug fixes
+
+🌟 Project sustainability - Server costs, domains, etc.
+
+Every donation, no matter how small, is greatly appreciated! 🙏
