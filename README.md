@@ -522,7 +522,7 @@ EasyInstall Enterprise Stack transforms any VPS into a **professional hosting en
 **Donate with PayPal**
 Scan the QR code below to make a donation via PayPal:
 
-<p align="center"> <img src="https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=https://paypal.me/yourusername&choe=UTF-8" alt="PayPal QR Code" width="250" height="250"> </p><p align="center"> <b>👉 <a href="https://paypal.me/yourusername">Click here to donate via PayPal</a></b> </p>
+<p align="center"> <img src="[https://drive.google.com/file/d/11eGHRGOpMehPtXdEy34XsXYc4RaCFb2u/view?usp=drivesdk)" alt="PayPal QR Code" width="250" height="250"> </p><p align="center"> <b>👉 <a href="https://paypal.me/sugandodrai">Click here to donate via PayPal</a></b> </p>
 **Why Donate?**
 ☕ Buy me a coffee - Keep me energized for coding
 
