@@ -1354,6 +1354,18 @@ EOF
     echo "   easyinstall domain example.com -php*v=8.2 -ssl=on -cache=on -clearcache"
     echo ""
     echo "============================================"
+    echo ""
+    echo -e "${GREEN}════════════════════════════════════════════════${NC}"
+    echo -e "${YELLOW}☕  Support This Project${NC}"
+    echo -e "${GREEN}════════════════════════════════════════════════${NC}"
+    echo -e "${WHITE}If you find this script useful, consider buying${NC}"
+    echo -e "${WHITE}me a coffee. Your support keeps this project alive!${NC}"
+    echo ""
+    echo -e "${GREEN}👉  Donate with PayPal:${NC}"
+    echo -e "${BLUE}    https://paypal.me/sugandodrai${NC}"
+    echo ""
+echo -e "${GREEN}════════════════════════════════════════════════${NC}"
+echo ""
     echo -e "${NC}"
 }
 
