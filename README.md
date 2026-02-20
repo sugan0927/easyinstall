@@ -10,528 +10,755 @@
 ### Run this Command On Your VPS 
 #  '  wget -qO- http://bit.ly/4aZ9030 | sudo bash  '
 
-## 📋 Table of Contents
-- [What is EasyInstall?](#-what-is-easyinstall)
+# EasyInstall Enterprise Stack v2.1
+
+## 🚀 **Ultra-Optimized WordPress Hosting Engine for 512MB VPS**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Production Ready](https://img.shields.io/badge/Production-Ready-brightgreen)](https://github.com/)
+[![WordPress](https://img.shields.io/badge/WordPress-Optimized-blue)](https://wordpress.org)
+[![PHP](https://img.shields.io/badge/PHP-8.x-purple)](https://php.net)
+
+---
+
+## 📋 **Table of Contents**
+- [Overview](#-overview)
 - [Features](#-features)
-- [Performance Capability](#-performance-capability)
-- [Quick Install](#-quick-install)
-- [Commands](#-commands)
-- [How It Works](#-how-it-works)
+- [System Requirements](#-system-requirements)
+- [Installation](#-installation)
+- [Quick Start](#-quick-start)
+- [Command Reference](#-command-reference)
 - [Architecture](#-architecture)
+- [Performance Optimization](#-performance-optimization)
 - [Security Features](#-security-features)
-- [Multi-Site Hosting Mode](#-multi-site-hosting-mode)
-- [Performance Tuning](#-performance-tuning)
+- [Backup & Recovery](#-backup--recovery)
+- [Multi-Site Management](#-multi-site-management)
+- [Monitoring](#-monitoring)
+- [CDN Integration](#-cdn-integration)
+- [Email Configuration](#-email-configuration)
+- [Troubleshooting](#-troubleshooting)
 - [FAQ](#-faq)
-- [Contributing](#-contributing)
+- [Support](#-support)
 - [License](#-license)
 
 ---
 
-## 🧠 What is EasyInstall?
+## 🎯 **Overview**
 
-EasyInstall is a **lightweight automation stack** that transforms low-resource VPS servers into **enterprise-grade hosting environments**. It automatically installs and optimizes a complete WordPress hosting stack with:
+EasyInstall is a **production-ready, enterprise-grade WordPress hosting stack** specifically optimized for **512MB RAM VPS**. It transforms a basic virtual private server into a high-performance WordPress hosting engine with automatic optimization, security hardening, and comprehensive management tools.
 
-- **Nginx** with FastCGI cache
-- **MariaDB** database server
-- **PHP-FPM** with optimized workers
-- **WordPress** latest version
-- **Redis** object cache ready
-- **Fail2ban** intrusion prevention
-- **UFW** firewall
+**Why EasyInstall?**
+- 🚀 **10x Performance** - Optimized for low-memory VPS
+- 🔒 **Enterprise Security** - Built-in firewall, fail2ban, SSL
+- 💾 **Automated Backups** - Daily/weekly/monthly with auto-cleanup
+- 📊 **Real-time Monitoring** - Netdata + custom alerts
+- 🌐 **Multi-site Support** - Host multiple WordPress sites
+- ☁️ **CDN Ready** - Cloudflare, BunnyCDN integration
+- 📧 **Email Ready** - Transactional emails and alerts
 
 ---
 
-## ✨ Features
+## ✨ **Features**
 
-### 🔥 Core Features
-| Feature | Description |
-|---------|-------------|
-| **512MB VPS Optimization** | Auto-tuning for low-memory environments |
-| **FastCGI Cache** | 5x-20x speed boost, 80% DB load reduction |
-| **Auto WordPress Deployment** | One-command WordPress installation |
-| **Redis Object Cache** | Ready-to-use Redis configuration |
-| **Enterprise Security** | Kernel hardening, firewall, intrusion detection |
-| **Auto SSL Ready** | Prepared for Let's Encrypt integration |
+### **Core Features**
+- ✅ Automatic PHP 8.x installation (latest stable)
+- ✅ Nginx with FastCGI cache
+- ✅ MariaDB with low-memory optimization
+- ✅ Redis object cache
+- ✅ Let's Encrypt SSL auto-renewal
+- ✅ UFW Firewall configuration
+- ✅ Fail2ban protection
+- ✅ WordPress latest version
 
-### 🚀 New in Enterprise Version
+### **Advanced Features**
+- ✅ **Adaptive Resource Management** - Auto-configures based on RAM
+- ✅ **Kernel Tuning** - Network and filesystem optimization
+- ✅ **Swap Configuration** - Dynamic swap size based on RAM
+- ✅ **OPcache Enabled** - PHP bytecode caching
+- ✅ **Automated Backups** - Daily, weekly, monthly with retention
+- ✅ **Multi-site Panel** - Host unlimited WordPress sites
+- ✅ **CDN Integration** - Cloudflare, BunnyCDN, QuickCache
+- ✅ **Email Service** - Local Postfix with transactional support
+- ✅ **Monitoring** - Netdata + custom resource checks
+- ✅ **Performance Reports** - Generate detailed system reports
 
-#### ✅ FastCGI Cache Auto Setup
-Nginx automatically configured with:
-```nginx
-fastcgi_cache_path /var/cache/nginx levels=1:2 keys_zone=WORDPRESS:100m inactive=60m;
-fastcgi_cache_key "$scheme$request_method$host$request_uri";
-```
-**Result:** Static-level performance for dynamic WordPress
+---
 
-#### ✅ Domain Change Command
+## 💻 **System Requirements**
+
+### **Minimum Requirements**
+| Component | Requirement |
+|-----------|-------------|
+| **RAM** | 512 MB |
+| **CPU** | 1 Core |
+| **Disk** | 10 GB |
+| **OS** | Ubuntu 20.04+ / Debian 11+ |
+
+### **Recommended**
+| Component | Recommendation |
+|-----------|----------------|
+| **RAM** | 1 GB+ |
+| **CPU** | 2 Cores |
+| **Disk** | 20 GB SSD |
+| **OS** | Ubuntu 22.04 LTS |
+
+---
+
+## 🚀 **Installation**
+
+### **One-Line Installation**
 ```bash
-easyinstall domain yourdomain.com
+curl -sSL https://raw.githubusercontent.com/yourusername/easyinstall/main/easyinstall.sh | bash
 ```
-Automatically:
-- Updates Nginx vhost
-- Updates WordPress site URLs
-- Clears cache
-- Prepares SSL configuration
 
-#### ✅ IP → Domain Migration
+### **Manual Installation**
 ```bash
-easyinstall migrate yourdomain.com
-```
-Automatically:
-- Replaces `http://IP` → `https://domain`
-- Updates wp-config.php
-- Enforces HTTPS redirect
-- Configures SSL ready state
+# Download the script
+wget https://raw.githubusercontent.com/yourusername/easyinstall/main/easyinstall.sh
 
-#### ✅ Enterprise Hosting Panel Mode
+# Make it executable
+chmod +x easyinstall.sh
+
+# Run as root
+sudo ./easyinstall.sh
+```
+
+### **Installation Process**
+The script automatically:
+1. 📊 Detects system resources
+2. 🔧 Configures swap space
+3. ⚙️ Applies kernel optimizations
+4. 📦 Installs all required packages
+5. 🔐 Secures database
+6. ⚡ Optimizes PHP-FPM
+7. 🚀 Configures Nginx with cache
+8. 📝 Installs WordPress
+9. 💾 Sets up backup system
+10. 📊 Configures monitoring
+11. ☁️ Adds CDN tools
+12. 📧 Configures email
+
+---
+
+## ⚡ **Quick Start**
+
+### **After Installation**
 ```bash
-easyinstall panel enable
+# Check system status
+easyinstall status
+
+# View installation info
+cat /root/easyinstall-info.txt
+
+# Access WordPress
+http://your-server-ip
 ```
-Creates:
-- `/var/www/sites/` multi-site structure
-- Per-site PHP pools
-- Per-site FastCGI caches
-- Isolated site environments
 
----
-
-## 📊 Performance Capability
-
-| VPS RAM | Expected Capability | Use Case |
-|---------|--------------------|----------|
-| **512MB** | 1000+ concurrent cached users | Personal sites, blogs |
-| **1GB** | 3000+ concurrent users | Business sites, e-commerce |
-| **2GB** | Production SaaS capable | Multiple sites, agencies |
-| **4GB+** | Multi-site enterprise hosting | High-traffic applications |
-
-### With FastCGI Cache Enabled:
-- **5x–20x** speed boost
-- **80%** database load reduction
-- **< 50ms** response times for cached pages
-- **1000+ concurrent users** on 512MB RAM
-
----
-
-## ⚡ Quick Install
-
-### One Command Installation
+### **Basic Workflow**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sugan0927/easyinstall/main/easyinstall.sh | sudo bash
-```
-
-### After Installation
-Access your site at:
-```
-http://YOUR_SERVER_IP
-```
-
-Installation details will be displayed:
-```
-======================================
-✅ Installation Complete!
-Access your site: http://YOUR_SERVER_IP
-Database Name: wordpress
-Database User: wpuser
-Database Password: RANDOM_GENERATED_PASSWORD
-======================================
-```
-
----
-
-## 🛠 Commands
-
-After installation, use these commands to manage your server:
-
-| Command | Description |
-|---------|-------------|
-| `easyinstall domain example.com` | Change domain for WordPress |
-| `easyinstall migrate example.com` | Migrate from IP to domain |
-| `easyinstall panel enable` | Enable multi-site hosting mode |
-| `easyinstall cache clear` | Clear FastCGI cache |
-| `easyinstall redis enable` | Enable Redis object cache |
-| `easyinstall ssl example.com` | Prepare SSL configuration |
-| `easyinstall status` | Show server status |
-
----
-# Simple domain change
+# 1. Point your domain to server IP
+# 2. Add domain to WordPress
 easyinstall domain example.com
 
-# Advanced domain update with multiple options
-easyinstall domain example.com -php*v=8.2 -ssl=on -cache=on -clearcache
-
-# Migrate from IP to domain
-easyinstall migrate example.com
-
-# Install SSL with automatic email
+# 3. Install SSL certificate
 easyinstall ssl example.com
 
-# Install SSL with custom email
-easyinstall ssl example.com admin@example.com
+# 4. Enable Redis cache
+easyinstall redis enable
 
-# Reinstall WordPress
-easyinstall reinstall
+# 5. View performance report
+easyinstall report
+```
+
+---
+
+## 📚 **Command Reference**
+
+### **Main Command Structure**
+```bash
+easyinstall [category] [command] [options]
+```
+
+### **Complete Command List**
+
+#### 🌐 **Domain & SSL**
+| Command | Description |
+|---------|-------------|
+| `easyinstall domain <domain>` | Change WordPress domain |
+| `easyinstall domain <domain> -php*v=8.2 -ssl=on -cache=on -clearcache` | Advanced domain update |
+| `easyinstall ssl <domain> [email]` | Install SSL + plugins |
+| `easyinstall migrate <domain>` | Migrate from IP to domain |
+
+#### 💾 **Backup & Restore**
+| Command | Description |
+|---------|-------------|
+| `easyinstall backup [daily\|weekly\|monthly]` | Create backup |
+| `easyinstall restore` | Restore from backup |
+| `easyinstall db backup` | Database backup only |
+| `easyinstall db restore <file>` | Restore database |
+
+#### 📊 **Monitoring & Reports**
+| Command | Description |
+|---------|-------------|
+| `easyinstall status` | System status |
+| `easyinstall report` | Performance report |
+| `easyinstall health` | Health check |
+
+#### ☁️ **CDN Integration**
+| Command | Description |
+|---------|-------------|
+| `easyinstall cdn cloudflare <domain> <key> <email>` | Cloudflare setup |
+| `easyinstall cdn bunnycdn <domain> <key> <zone>` | BunnyCDN setup |
+| `easyinstall cdn quickcache` | Enable QuickCache |
+
+#### 📧 **Email**
+| Command | Description |
+|---------|-------------|
+| `easyinstall mail config <email>` | Set admin email |
+| `easyinstall mail send <to> <subject> <body>` | Send email |
+| `easyinstall mail alert <message>` | Send alert |
+
+#### 🏢 **Multi-site**
+| Command | Description |
+|---------|-------------|
+| `easyinstall site create <domain>` | Create new site |
+| `easyinstall site delete <domain>` | Delete site |
+| `easyinstall site list` | List all sites |
+| `easyinstall site ssl <domain>` | Add SSL to site |
+
+#### ⚡ **Performance**
+| Command | Description |
+|---------|-------------|
+| `easyinstall cache clear` | Clear FastCGI cache |
+| `easyinstall redis enable` | Enable Redis cache |
+| `easyinstall optimize` | Optimize system |
+| `easyinstall reinstall` | Reinstall WordPress |
+
+#### 🔧 **Maintenance**
+| Command | Description |
+|---------|-------------|
+| `easyinstall update` | Update system |
+| `easyinstall upgrade` | Upgrade packages |
+| `easyinstall clean` | Clean temp files |
+| `easyinstall logs [service]` | View logs |
+| `easyinstall restart [service]` | Restart services |
+
+#### 🔐 **Security**
+| Command | Description |
+|---------|-------------|
+| `easyinstall firewall status` | Firewall status |
+| `easyinstall fail2ban status` | Fail2ban status |
+| `easyinstall ssl renew` | Renew SSL |
+| `easyinstall ssl list` | List certificates |
+
+#### 🗄️ **Database**
+| Command | Description |
+|---------|-------------|
+| `easyinstall db list` | List databases |
+| `easyinstall db optimize` | Optimize database |
+| `easyinstall db credentials` | Show credentials |
+
+---
+
+## 🏗️ **Architecture**
+
+### **Component Stack**
+```
+┌─────────────────────────────────────┐
+│         WordPress                    │
+├─────────────────────────────────────┤
+│         Nginx + FastCGI Cache        │
+├─────────────────────────────────────┤
+│         PHP-FPM + OPcache            │
+├─────────────────────────────────────┤
+│    MariaDB    │    Redis             │
+├─────────────────────────────────────┤
+│    Ubuntu/Debian OS                  │
+└─────────────────────────────────────┘
+```
+
+### **Resource Allocation (512MB VPS)**
+```
+RAM Distribution:
+├── 80MB  - Nginx + Cache
+├── 120MB - PHP-FPM (4 processes)
+├── 80MB  - MariaDB
+├── 30MB  - Redis
+├── 30MB  - System services
+└── 172MB - Free/Buffer
+
+Swap:
+└── 1GB - Based on RAM size
+```
+
+---
+
+## ⚙️ **Performance Optimization**
+
+### **Auto-Tuning Features**
+The script automatically optimizes based on your RAM:
+
+| RAM | PHP Children | Cache Size | Swappiness |
+|-----|--------------|------------|------------|
+| 512MB | 4 | 100MB | 60 |
+| 1GB | 8 | 200MB | 50 |
+| 2GB+ | 16 | 500MB | 40 |
+
+### **Enabled Optimizations**
+- ✅ Nginx FastCGI caching
+- ✅ PHP OPcache
+- ✅ Redis object cache
+- ✅ MariaDB query cache
+- ✅ Kernel network tuning
+- ✅ Filesystem optimizations
+- ✅ Swap tuning
+
+---
+
+## 🔒 **Security Features**
+
+### **Built-in Security**
+- ✅ **UFW Firewall** - Only ports 22, 80, 443 open
+- ✅ **Fail2ban** - Protects against brute force
+- ✅ **SSL/TLS** - Let's Encrypt auto-renewal
+- ✅ **MySQL Secure Installation** - Removes test databases
+- ✅ **WordPress Hardening** - Disables file editing, limits revisions
+- ✅ **Nginx Security Headers** - X-Frame-Options, XSS protection
+- ✅ **Hidden Files Protection** - Denies access to .htaccess, .git
+- ✅ **Rate Limiting** - Prevents DDoS attacks
+
+### **Security Commands**
+```bash
+# Check security status
+easyinstall firewall status
+easyinstall fail2ban status
+
+# Unblock IP
+easyinstall fail2ban unban 1.2.3.4
+
+# Add firewall rule
+easyinstall firewall allow 8080
+```
+
+---
+
+## 💾 **Backup & Recovery**
+
+### **Backup Types**
+| Type | Frequency | Retention |
+|------|-----------|-----------|
+| Daily | Every day | 7 days |
+| Weekly | Every Sunday | 30 days |
+| Monthly | 1st of month | 1 year |
+
+### **Backup Contents**
+- ✅ WordPress database (SQL)
+- ✅ WordPress files (wp-content, etc.)
+- ✅ Nginx configuration
+- ✅ SSL certificates
+
+### **Backup Commands**
+```bash
+# Create backups
+easyinstall backup daily
+easyinstall backup weekly
+easyinstall backup monthly
+
+# Restore from backup
+easyinstall restore
+
+# List backups
+ls -la /backups/daily/
+```
+
+### **Automatic Backup Schedule**
+```cron
+0 2 * * * root easyinstall backup daily     # 2 AM daily
+0 3 * * 0 root easyinstall backup weekly    # 3 AM Sunday
+0 4 1 * * root easyinstall backup monthly   # 4 AM 1st of month
+```
+
+---
+
+## 🌐 **Multi-Site Management**
+
+### **Features**
+- ✅ Host unlimited WordPress sites
+- ✅ Separate databases per site
+- ✅ Isolated file systems
+- ✅ Individual SSL certificates
+- ✅ Per-site caching
+
+### **Multi-Site Commands**
+```bash
+# Create new site
+easyinstall site create testsite.com
+
+# List all sites
+easyinstall site list
+
+# Add SSL to site
+easyinstall site ssl testsite.com
+
+# Delete site
+easyinstall site delete testsite.com
+```
+
+### **Site Directory Structure**
+```
+/var/www/sites/
+├── example.com/
+│   ├── public/           # WordPress files
+│   ├── logs/             # Access & error logs
+│   ├── backups/          # Site backups
+│   └── site-info.txt     # Database credentials
+├── testsite.com/
+└── blog.example.com/
+```
+
+---
+
+## 📊 **Monitoring**
+
+### **Monitoring Tools**
+- ✅ **Netdata** - Real-time performance monitoring
+- ✅ **Custom Resource Checks** - Every 15 minutes
+- ✅ **Email Alerts** - For critical issues
+- ✅ **Performance Reports** - Daily/weekly summaries
+
+### **Monitored Metrics**
+| Metric | Threshold | Action |
+|--------|-----------|--------|
+| CPU Load | > 2.0 | Email alert |
+| Memory | > 90% | Email alert |
+| Disk | > 85% | Auto-clean + alert |
+| SSL Expiry | < 7 days | Email alert |
+| Service Status | Down | Auto-restart |
+
+### **Monitoring Commands**
+```bash
+# View real-time stats
+easyinstall status
+
+# Generate report
+easyinstall report
+
+# Access Netdata dashboard
+http://your-server-ip:19999
+```
+
+### **Sample Performance Report**
+```
+📊 EasyInstall Performance Report
+==================================
+
+System Uptime: 15 days
+
+CPU Usage: 12%
+Load average: 0.45, 0.32, 0.28
+
+Memory Usage: 342MB/512MB (66%)
+Swap Usage: 120MB/1GB
+
+Disk Usage: 4.2GB/20GB (21%)
+
+Service Status:
+✅ nginx: active
+✅ php8.2-fpm: active
+✅ mariadb: active
+✅ redis-server: active
+
+Cache Statistics:
+Nginx Cache: 45MB
+Redis Memory: 12MB
+
+Database Size: 85MB
+Latest Backup: 20240115-023045 (125MB)
+```
+
+---
+
+## ☁️ **CDN Integration**
+
+### **Supported CDNs**
+- ✅ **Cloudflare** - Full API integration
+- ✅ **BunnyCDN** - Storage zone support
+- ✅ **QuickCache** - Built-in WordPress plugin
+
+### **CDN Commands**
+```bash
+# Cloudflare setup
+easyinstall cdn cloudflare example.com your-api-key admin@example.com
+
+# BunnyCDN setup
+easyinstall cdn bunnycdn example.com your-api-key storage-zone
+
+# QuickCache setup
+easyinstall cdn quickcache
+
+# Check CDN status
+easyinstall cdn status
+```
+
+### **CDN Benefits**
+- 🚀 Faster global loading
+- 🔒 DDoS protection
+- 💾 Bandwidth savings
+- 🌍 Edge caching
+
+---
+
+## 📧 **Email Configuration**
+
+### **Email Features**
+- ✅ Local Postfix server
+- ✅ Transactional emails
+- ✅ Alert notifications
+- ✅ WordPress email support
+
+### **Email Commands**
+```bash
+# Set admin email
+easyinstall mail config admin@example.com
+
+# Send email
+easyinstall mail send user@example.com "Subject" "Message body"
+
+# Send alert
+easyinstall mail alert "High CPU usage detected"
+
+# Check email status
+easyinstall mail status
+```
+
+### **Email Configuration**
+```php
+// WordPress will automatically use local mail
+// No additional SMTP setup required
+```
+
+---
+
+## 🔧 **Troubleshooting**
+
+### **Common Issues & Solutions**
+
+#### **1. WordPress White Screen**
+```bash
+# Enable debug mode
+easyinstall debug enable
+
+# Check error logs
+easyinstall logs php
+
+# Increase memory limit
+easyinstall domain example.com -php*v=8.2
+```
+
+#### **2. SSL Installation Fails**
+```bash
+# Check DNS propagation
+dig example.com
+
+# Ensure port 80 is open
+easyinstall firewall status
+
+# Manual SSL installation
+certbot --nginx -d example.com
+```
+
+#### **3. High Memory Usage**
+```bash
+# Check memory usage
+easyinstall status
 
 # Clear cache
 easyinstall cache clear
 
-# Enable Redis
-easyinstall redis enable
+# Optimize database
+easyinstall db optimize
 
-# Enable panel mode
-easyinstall panel enable
+# Reduce PHP workers (edit manually)
+nano /etc/php/8.2/fpm/pool.d/www.conf
+```
+
+#### **4. Database Connection Issues**
+```bash
+# Check MySQL status
+systemctl status mariadb
+
+# View MySQL logs
+easyinstall logs mysql
+
+# Repair database
+mysqlcheck -r --all-databases
+```
+
+### **Logs Location**
+| Service | Log Location |
+|---------|--------------|
+| Nginx | `/var/log/nginx/` |
+| PHP-FPM | `/var/log/php*-fpm.log` |
+| MySQL | `/var/log/mysql/error.log` |
+| WordPress | `/var/www/html/wordpress/wp-content/debug.log` |
+| Backup | `/backups/logs/` |
+| System | `journalctl -xe` |
+
+---
+
+## ❓ **FAQ**
+
+### **General Questions**
+
+**Q: Can I run this on 512MB RAM VPS?**
+A: Yes! The script is specifically optimized for 512MB VPS and includes swap configuration to handle memory constraints.
+
+**Q: Which PHP version is installed?**
+A: The latest PHP 8.x version available (8.3, 8.2, or 8.1). You can switch versions anytime with `easyinstall domain -php*v=8.2`.
+
+**Q: Is this production ready?**
+A: Absolutely! The script includes enterprise-grade security, backups, monitoring, and optimization features.
+
+**Q: Can I host multiple WordPress sites?**
+A: Yes! Use `easyinstall site create domain.com` to add unlimited sites.
+
+### **Technical Questions**
+
+**Q: How much disk space do I need?**
+A: Minimum 10GB, recommended 20GB for backups and multiple sites.
+
+**Q: Does it support Let's Encrypt SSL?**
+A: Yes, automatic SSL with auto-renewal via `easyinstall ssl domain.com`.
+
+**Q: How are backups handled?**
+A: Automated daily, weekly, monthly backups with 7/30/365 day retention. Stored in `/backups/`.
+
+**Q: Can I restore from backup?**
+A: Yes! Use `easyinstall restore` and select from available backups.
+
+**Q: Is there a control panel?**
+A: The script provides CLI management commands. Netdata dashboard is available at port 19999 for monitoring.
+
+### **Security Questions**
+
+**Q: Is the firewall configured?**
+A: Yes, UFW is configured with only SSH (22), HTTP (80), and HTTPS (443) ports open.
+
+**Q: How is WordPress secured?**
+A: File editing disabled, limited revisions, secure salts, hidden files protection, and security headers.
+
+**Q: What about DDoS protection?**
+A: Fail2ban protects against brute force, and Nginx has rate limiting configured.
+
+**Q: How are updates handled?**
+A: Use `easyinstall update` for system updates and `easyinstall wp update` for WordPress.
+
+### **Performance Questions**
+
+**Q: How fast is it?**
+A: With FastCGI cache and Redis, WordPress loads in under 500ms even on 512MB VPS.
+
+**Q: Can I clear cache?**
+A: Yes! `easyinstall cache clear` clears FastCGI cache instantly.
+
+**Q: How to optimize database?**
+A: `easyinstall db optimize` runs MariaDB optimization.
+
+**Q: Does it support CDN?**
+A: Yes! Cloudflare, BunnyCDN, and QuickCache integration available.
+
+---
+
+## 🆘 **Support**
+
+### **Get Help**
+```bash
+# Show all commands
+easyinstall help
+
+# Show specific command help
+easyinstall domain --help
 
 # Check system status
 easyinstall status
 
-# Show help
-easyinstall help
-
-## 🔧 How It Works
-
-### Installation Flow
-
+# View logs
+easyinstall logs
 ```
-┌─────────────────┐
-│  Detect RAM     │
-└────────┬────────┘
-         ↓
-┌─────────────────┐
-│  Create Swap    │
-└────────┬────────┘
-         ↓
-┌─────────────────┐
-│  Kernel Tuning  │
-└────────┬────────┘
-         ↓
-┌─────────────────┐
-│  Install Stack  │
-│  - Nginx        │
-│  - MariaDB      │
-│  - PHP-FPM      │
-│  - Redis        │
-└────────┬────────┘
-         ↓
-┌─────────────────┐
-│  FastCGI Cache  │
-└────────┬────────┘
-         ↓
-┌─────────────────┐
-│  WordPress      │
-│  Installation   │
-└────────┬────────┘
-         ↓
-┌─────────────────┐
-│  Security       │
-│  Hardening      │
-└─────────────────┘
-```
+
+### **Documentation**
+- 📚 [Full Command Reference](#-command-reference)
+- 🔧 [Troubleshooting Guide](#-troubleshooting)
+- ❓ [FAQ](#-faq)
+
+### **Community**
+- 🐛 Report issues on GitHub
+- 💬 Join our Discord
+- 📧 Email: support@easyinstall.io
 
 ---
 
-## 🏗 Architecture
+## 🤝 **Contributing**
 
-### Stack Components
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-```
-┌─────────────────────────────────────┐
-│         User Requests                │
-└───────────────┬─────────────────────┘
-                ↓
-┌─────────────────────────────────────┐
-│    Nginx (Port 80/443)              │
-│  ┌─────────────────────────────┐    │
-│  │   FastCGI Cache Layer       │    │
-│  └───────────────┬─────────────┘    │
-└───────────────────┼─────────────────┘
-                    ↓
-┌─────────────────────────────────────┐
-│         PHP-FPM                      │
-│    (Optimized Workers)               │
-└───────────────┬─────────────────────┘
-                ↓
-┌─────────────────────────────────────┐
-│    WordPress + Redis + MariaDB       │
-└─────────────────────────────────────┘
-```
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ---
 
-## 🛡 Security Features
-
-### Implemented Security Measures
-
-| Feature | Configuration |
-|---------|--------------|
-| **Kernel Hardening** | TCP syncookies, SYN backlog, port ranges |
-| **Database Security** | Anonymous user removal, test DB dropped |
-| **Firewall** | UFW with port 22,80,443 only |
-| **Intrusion Prevention** | Fail2ban active |
-| **File Permissions** | www-data ownership, secure wp-config |
-| **Nginx Hardening** | .htaccess denied, version hidden |
-
-### Security Headers Ready
-Add to your Nginx config for additional security:
-```nginx
-add_header X-Frame-Options "SAMEORIGIN" always;
-add_header X-Content-Type-Options "nosniff" always;
-add_header X-XSS-Protection "1; mode=block" always;
-```
-
----
-
-## 🏢 Multi-Site Hosting Mode
-
-Enable enterprise hosting panel mode:
-
-```bash
-easyinstall panel enable
-```
-
-### Creates Structure:
-```
-/var/www/sites/
-├── site1.com/
-│   ├── public/
-│   ├── logs/
-│   └── config/
-├── site2.com/
-│   ├── public/
-│   ├── logs/
-│   └── config/
-└── site3.com/
-    ├── public/
-    ├── logs/
-    └── config/
-```
-
-### Per-Site Configuration:
-- Isolated PHP pools
-- Separate FastCGI caches
-- Individual Redis databases
-- Independent SSL certificates
-
----
-
-## ⚙️ Performance Tuning
-
-### Adaptive RAM Optimization
-
-| RAM Size | PHP Workers | FastCGI Cache | MySQL Buffer |
-|----------|------------|---------------|--------------|
-| 512MB | 2-3 | 100MB | 64MB |
-| 1GB | 4-6 | 200MB | 128MB |
-| 2GB | 8-10 | 400MB | 256MB |
-| 4GB+ | 12-20 | 1GB | 512MB |
-
-### Kernel Tuning Applied
-```ini
-net.ipv4.tcp_syncookies = 1
-net.ipv4.tcp_max_syn_backlog = 8192
-net.core.somaxconn = 65535
-net.core.netdev_max_backlog = 5000
-net.ipv4.tcp_tw_reuse = 1
-net.ipv4.ip_local_port_range = 1024 65000
-```
-
----
-
-## ❓ FAQ
-
-### Q: Can this run on 512MB RAM?
-**A:** Yes! That's the primary target. With FastCGI cache enabled, a 512MB VPS can handle 1000+ concurrent users.
-
-### Q: Is this production ready?
-**A:** Absolutely. All components are configured with security and performance best practices.
-
-### Q: Does it support SSL?
-**A:** The stack is SSL-ready. You can easily add Let's Encrypt with:
-```bash
-apt install -y certbot python3-certbot-nginx
-certbot --nginx -d yourdomain.com
-```
-
-### Q: Can I host multiple sites?
-**A:** Yes, enable panel mode with `easyinstall panel enable` for multi-site hosting.
-
-### Q: How do I change PHP version?
-**A:** Edit the PHP version in `/etc/nginx/sites-available/wordpress` and restart PHP-FPM.
-
-### Q: Where are error logs?
-**A:** Check `/var/log/nginx/error.log` and `/var/log/mysql/error.log`
-
----
-
-## 📁 GitHub Repository Structure
-
-```
-easyinstall/
-├── easyinstall.sh           # Main installation script
-├── panel.sh                  # Multi-site panel manager
-├── domain.sh                 # Domain management script
-├── migrate.sh                # IP to domain migration
-├── nginx/
-│   ├── fastcgi-cache.conf    # FastCGI cache configuration
-│   ├── wordpress.conf         # WordPress vhost template
-│   └── security-headers.conf  # Security headers
-├── php/
-│   ├── pool-tuning.conf       # PHP-FPM pool settings
-│   └── opcache.ini           # OPcache configuration
-├── scripts/
-│   ├── easyinstall-command    # Main command script
-│   └── post-install.sh        # Post-installation tasks
-├── README.md                  # This file
-├── LICENSE                    # MIT License
-└── CHANGELOG.md               # Version history
-```
-
----
-
-## 🚀 Development Roadmap
-
-### Version 2.0 (Current)
-- [x] 512MB RAM optimization
-- [x] FastCGI cache auto-config
-- [x] Domain management commands
-- [x] IP to domain migration
-- [x] Multi-site panel mode
-
-### Version 2.1 (Coming Soon)
-- [ ] Automatic Let's Encrypt SSL
-- [ ] WordPress CLI integration
-- [ ] Backup automation
-- [ ] Monitoring dashboard
-
-### Version 3.0 (Planned)
-- [ ] Web-based control panel
-- [ ] Docker support
-- [ ] CDN integration
-- [ ] Advanced caching rules
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md).
-
-### Development Setup
-```bash
-git clone https://github.com/YOUR_USERNAME/easyinstall.git
-cd easyinstall
-chmod +x *.sh
-# Test in VM or container
-```
-
-### Report Issues
-Found a bug? [Open an issue](https://github.com/sugan0927/easyinstall/issues)
-
----
-
-## 📜 License
+## 📄 **License**
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
----
+```
+MIT License
 
-## ⭐ Support
+Copyright (c) 2024 EasyInstall
 
-If you find this project useful, please give it a star on GitHub!
-
----
-
-## 🙏 Acknowledgments
-
-- WordPress community
-- Nginx development team
-- MariaDB Foundation
-- All open-source contributors
-
----
-
-## 📞 Contact
-
-- **GitHub Issues**: For bug reports and feature requests
-- **Discussions**: Join our GitHub Discussions
-- **Twitter**: [@easyinstall](https://twitter.com/easyinstall)
-
----
-
-**Made with ❤️ for the open-source community**
-
----
-
-# 🎯 Quick Start Example
-
-## Fresh 512MB VPS Installation
-
-```bash
-# SSH into your server
-ssh root@your-server-ip
-
-# Run EasyInstall
-curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/easyinstall/main/easyinstall.sh | sudo bash
-
-# After completion, note database credentials
-# Access WordPress at http://your-server-ip
-
-# To add a domain later
-easyinstall migrate yourdomain.com
-
-# Enable multi-site hosting
-easyinstall panel enable
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files...
 ```
 
 ---
 
-## ✅ Production Checklist
+## 🙏 **Acknowledgments**
 
-Before going live:
-- [ ] Change default SSH port (optional)
-- [ ] Configure SSL with Let's Encrypt
-- [ ] Set up regular backups
-- [ ] Configure monitoring
-- [ ] Update WordPress admin password
-- [ ] Install security plugins
-- [ ] Test cache headers with `curl -I yourdomain.com`
+- [Ondřej Surý](https://deb.sury.org/) for PHP packages
+- [Let's Encrypt](https://letsencrypt.org/) for free SSL
+- [WordPress](https://wordpress.org/) for the best CMS
+- [Netdata](https://www.netdata.cloud/) for monitoring
+- All contributors and users
 
 ---
 
-## 📊 Performance Verification
+## 📞 **Contact**
 
-Check your FastCGI cache is working:
-```bash
-curl -I http://your-server-ip
-# Look for: X-Cache: HIT
-```
-
-Check server status:
-```bash
-easyinstall status
-```
+- **Author**: Sugandod Rai
+- **Email**: sugandodrai@gmail.com
+- **PayPal**: [https://paypal.me/sugandodrai](https://paypal.me/sugandodrai)
+- **GitHub**: [https://github.com/sugandodrai](https://github.com/sugandodrai)
 
 ---
 
-# 🏁 Final Notes
+## 🌟 **Star History**
 
-EasyInstall Enterprise Stack transforms any VPS into a **professional hosting environment** with:
+If you find this project useful, please give it a star on GitHub! It helps others discover it.
 
-- **Enterprise-grade performance** on minimal hardware
-- **Production-ready security** out of the box
-- **Scalable architecture** from 512MB to 64GB+
-- **Easy management** with custom commands
-- **Multi-site capability** for agencies and resellers
+---
 
-**Install now and experience the power of optimized hosting!**
-**Donate with PayPal**
-Scan the QR code below to make a donation via PayPal:
+## 📊 **Project Status**
 
-<p align="center"> <img src="[https://drive.google.com/file/d/11eGHRGOpMehPtXdEy34XsXYc4RaCFb2u/view?usp=drivesdk)" alt="PayPal QR Code" width="250" height="250"> </p><p align="center"> <b>👉 <a href="https://paypal.me/sugandodrai">Click here to donate via PayPal</a></b> </p>
-**Why Donate?**
-☕ Buy me a coffee - Keep me energized for coding
+- ✅ Production Ready
+- ✅ Active Development
+- ✅ Community Supported
+- ✅ Regular Updates
 
-🚀 Faster development - More features, quicker releases
+---
 
-💡 Better support - Priority bug fixes
+**Made with ❤️ for the WordPress community**
 
-🌟 Project sustainability - Server costs, domains, etc.
-
-Every donation, no matter how small, is greatly appreciated! 🙏
+[⬆ Back to Top](#easyinstall-enterprise-stack-v21)
