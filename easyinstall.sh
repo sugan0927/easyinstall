@@ -453,6 +453,17 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
+# Function to get PHP version for status command
+get_php_fpm_service() {
+    if command -v php >/dev/null 2>&1; then
+        PHP_VER=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
+        echo "php$PHP_VER-fpm"
+    else
+        # Try to detect from systemd
+        systemctl list-units --type=service --all 2>/dev/null | grep -o "php[0-9]\.[0-9]*-fpm\.service" | head -1 || echo "php-fpm"
+    fi
+}
+
 case "$1" in
     domain)
         if [ -z "$2" ]; then
@@ -518,16 +529,23 @@ case "$1" in
         if [ "$2" = "enable" ]; then
             echo -e "${YELLOW}📦 Enabling Redis object cache...${NC}"
             if [ -f /var/www/html/wordpress/wp-config.php ]; then
-                sed -i "s/define('WP_CACHE', false);/define('WP_CACHE', true);/" /var/www/html/wordpress/wp-config.php
+                # Check if WP_CACHE is already defined
+                if grep -q "WP_CACHE" /var/www/html/wordpress/wp-config.php; then
+                    sed -i "s/define('WP_CACHE', false);/define('WP_CACHE', true);/" /var/www/html/wordpress/wp-config.php
+                else
+                    echo "define('WP_CACHE', true);" >> /var/www/html/wordpress/wp-config.php
+                fi
                 echo -e "${GREEN}✅ Redis cache enabled in WordPress${NC}"
             fi
         fi
         ;;
         
     status)
+        PHP_FPM_SERVICE=$(get_php_fpm_service)
+        
         echo -e "${YELLOW}📊 System Status:${NC}"
         echo "   • Nginx: $(systemctl is-active nginx)"
-        echo "   • PHP-FPM: $(systemctl is-active php*-fpm)"
+        echo "   • PHP-FPM: $(systemctl is-active $PHP_FPM_SERVICE 2>/dev/null || echo "inactive")"
         echo "   • MariaDB: $(systemctl is-active mariadb)"
         echo "   • Redis: $(systemctl is-active redis-server)"
         echo "   • Fail2ban: $(systemctl is-active fail2ban)"
@@ -567,13 +585,58 @@ EOF
 }
 
 # ============================================
-# Final Setup
+# Final Setup - FIXED VERSION
 # ============================================
 finalize() {
     echo -e "${YELLOW}🎯 Finalizing installation...${NC}"
     
-    # Enable services at boot
-    systemctl enable nginx mariadb redis-server fail2ban php*-fpm
+    # Enable services at boot - FIXED: No glob pattern
+    echo -e "${YELLOW}   📌 Enabling services...${NC}"
+    
+    # Enable standard services
+    systemctl enable nginx >/dev/null 2>&1
+    systemctl enable mariadb >/dev/null 2>&1
+    systemctl enable redis-server >/dev/null 2>&1
+    systemctl enable fail2ban >/dev/null 2>&1
+    
+    # FIX: Properly enable PHP-FPM by finding exact version
+    echo -e "   🔍 Detecting PHP-FPM service..."
+    
+    # Method 1: Get PHP version from variable
+    if [ -n "$PHP_VERSION" ]; then
+        PHP_FPM_SERVICE="php$PHP_VERSION-fpm"
+        if systemctl list-units --type=service --all | grep -q "$PHP_FPM_SERVICE"; then
+            systemctl enable $PHP_FPM_SERVICE >/dev/null 2>&1
+            echo -e "${GREEN}   ✅ PHP-FPM enabled: $PHP_FPM_SERVICE${NC}"
+        else
+            # Method 2: Try common PHP versions
+            for version in 8.2 8.1 8.0 7.4; do
+                if systemctl list-units --type=service --all | grep -q "php$version-fpm"; then
+                    systemctl enable php$version-fpm >/dev/null 2>&1
+                    echo -e "${GREEN}   ✅ PHP-FPM enabled: php$version-fpm${NC}"
+                    PHP_FPM_SERVICE="php$version-fpm"
+                    break
+                fi
+            done
+        fi
+    else
+        # Method 3: Detect from system
+        PHP_FPM_SERVICE=$(systemctl list-units --type=service --all | grep -o "php[0-9]\.[0-9]*-fpm\.service" | head -1)
+        if [ -n "$PHP_FPM_SERVICE" ]; then
+            systemctl enable $PHP_FPM_SERVICE >/dev/null 2>&1
+            echo -e "${GREEN}   ✅ PHP-FPM enabled: $PHP_FPM_SERVICE${NC}"
+        else
+            # Method 4: Last resort - try to find service file
+            for service_file in /lib/systemd/system/php*-fpm.service /etc/systemd/system/php*-fpm.service; do
+                if [ -f "$service_file" ]; then
+                    service_name=$(basename "$service_file")
+                    systemctl enable $service_name >/dev/null 2>&1
+                    echo -e "${GREEN}   ✅ PHP-FPM enabled: $service_name${NC}"
+                    break
+                fi
+            done
+        fi
+    fi
     
     # Create info file
     cat > /root/easyinstall-info.txt <<EOF
@@ -636,6 +699,8 @@ EOF
     echo "   easyinstall status              - Check status"
     echo "   easyinstall domain yourdomain.com - Add domain"
     echo "   easyinstall cache clear         - Clear cache"
+    echo ""
+    echo "✅ PHP-FPM Service: Enabled successfully"
     echo ""
     echo "============================================"
     echo -e "${NC}"
