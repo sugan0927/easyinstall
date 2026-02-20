@@ -151,6 +151,38 @@ After installation, use these commands to manage your server:
 | `easyinstall status` | Show server status |
 
 ---
+# Simple domain change
+easyinstall domain example.com
+
+# Advanced domain update with multiple options
+easyinstall domain example.com -php*v=8.2 -ssl=on -cache=on -clearcache
+
+# Migrate from IP to domain
+easyinstall migrate example.com
+
+# Install SSL with automatic email
+easyinstall ssl example.com
+
+# Install SSL with custom email
+easyinstall ssl example.com admin@example.com
+
+# Reinstall WordPress
+easyinstall reinstall
+
+# Clear cache
+easyinstall cache clear
+
+# Enable Redis
+easyinstall redis enable
+
+# Enable panel mode
+easyinstall panel enable
+
+# Check system status
+easyinstall status
+
+# Show help
+easyinstall help
 
 ## 🔧 How It Works
 
