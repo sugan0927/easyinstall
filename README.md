@@ -8,7 +8,7 @@
 
 ---
 ### Run this Command On Your VPS 
-#  '   wget -qO- install.easyinstall.site | bash '
+#  '   curl -sL https://install.easyinstall.site/script | bash '
 
 # EasyInstall Enterprise Stack v2.1
 
