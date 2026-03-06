@@ -1,0 +1,810 @@
+# EasyInstall v5.6 - Complete Commands Reference
+
+## 📋 **Table of Contents**
+- [Installation Commands](#installation-commands)
+- [WordPress Commands](#wordpress-commands)
+- [Redis Management](#redis-management)
+- [Docker Management](#docker-management)
+- [Site Management](#site-management)
+- [SSL Commands](#ssl-commands)
+- [Backup Commands](#backup-commands)
+- [Monitoring Commands](#monitoring-commands)
+- [Advanced Features](#advanced-features)
+- [Git Integration](#git-integration)
+- [Staging Sites](#staging-sites)
+- [Cloud Backup](#cloud-backup)
+- [Restore Commands](#restore-commands)
+- [System Commands](#system-commands)
+- [Quick Examples](#quick-examples)
+
+---
+
+## 🚀 **Installation Commands**
+
+### **Main Installer**
+```bash
+# One-line installation
+curl -sSL https://raw.githubusercontent.com/yourusername/easyinstall/main/easyinstall.sh | sudo bash
+
+# Run installer manually
+sudo ./easyinstall.sh
+
+# Check installation status
+easyinstall status
+```
+
+---
+
+## 🌐 **WordPress Commands**
+
+### **Traditional WordPress (Separate Redis per site)**
+```bash
+# Basic installation
+easyinstall wp example.com
+
+# With specific PHP version
+easyinstall wp example.com --php=8.3
+easyinstall wp example.com --php=8.2
+easyinstall wp example.com --php=8.1
+
+# With SSL
+easyinstall wp example.com --ssl
+
+# With custom options
+easyinstall wp example.com --php=8.3 --ssl
+
+# Multiple sites (each gets unique Redis port)
+easyinstall wp site1.com      # Redis port: 6379
+easyinstall wp site2.com      # Redis port: 6380
+easyinstall wp site3.com      # Redis port: 6381
+```
+
+### **WordPress with Docker**
+```bash
+# Basic Docker installation
+easyinstall wp-docker example.com
+
+# With specific PHP version
+easyinstall wp-docker example.com --php=8.3
+
+# With specific MySQL version
+easyinstall wp-docker example.com --mysql=8.0
+easyinstall wp-docker example.com --mysql=5.7
+
+# With SSL
+easyinstall wp-docker example.com --ssl
+
+# Full options
+easyinstall wp-docker example.com --php=8.3 --mysql=8.0 --ssl
+
+# Multiple Docker sites (each gets unique port)
+easyinstall wp-docker site1.com      # Port: 8080
+easyinstall wp-docker site2.com      # Port: 8081
+easyinstall wp-docker site3.com      # Port: 8082
+```
+
+### **Aliases**
+```bash
+# WordPress aliases
+easyinstall wordpress example.com    # Same as 'wp'
+easyinstall docker-wp example.com    # Same as 'wp-docker'
+```
+
+---
+
+## ⚡ **Redis Management**
+
+### **Redis Status & Information**
+```bash
+# Show all Redis instances
+easyinstall redis-status
+
+# List all Redis ports in use
+easyinstall redis-ports
+
+# Show Redis memory usage
+redis-cli -p 6379 INFO memory | grep used_memory_human
+
+# Monitor Redis commands
+redis-cli -p 6379 MONITOR
+```
+
+### **Redis Instance Management**
+```bash
+# Restart Redis for a specific site
+easyinstall redis-restart example.com
+
+# Stop Redis for a site
+sudo systemctl stop redis-example-com
+
+# Start Redis for a site
+sudo systemctl start redis-example-com
+
+# Check Redis logs
+journalctl -u redis-example-com -f
+```
+
+### **Redis CLI Access**
+```bash
+# Access Redis CLI for a specific site
+easyinstall redis-cli example.com
+
+# Then use Redis commands:
+redis 127.0.0.1:6379> ping
+redis 127.0.0.1:6379> info keyspace
+redis 127.0.0.1:6379> dbsize
+redis 127.0.0.1:6379> flushall  # Clear all cache (caution!)
+```
+
+### **Redis Configuration**
+```bash
+# View Redis config
+cat /etc/redis/redis-example-com.conf
+
+# Edit Redis config
+nano /etc/redis/redis-example-com.conf
+
+# After editing, restart
+systemctl restart redis-example-com
+```
+
+---
+
+## 🐳 **Docker Management**
+
+### **Docker Site Operations**
+```bash
+# List all Docker sites
+easyinstall docker-list
+
+# Show Docker ports in use
+easyinstall docker-ports
+
+# Start a Docker site
+easyinstall docker-start example.com
+
+# Stop a Docker site
+easyinstall docker-stop example.com
+
+# Restart a Docker site
+easyinstall docker-restart example.com
+
+# View Docker logs
+easyinstall docker-logs example.com
+easyinstall docker-logs example.com nginx     # Specific container
+easyinstall docker-logs example.com wordpress
+easyinstall docker-logs example.com db
+easyinstall docker-logs example.com redis
+```
+
+### **Docker Container Access**
+```bash
+# Shell into WordPress container
+easyinstall docker-shell example.com
+easyinstall docker-shell example.com wordpress
+
+# Shell into database container
+easyinstall docker-shell example.com db
+
+# Shell into Redis container
+easyinstall docker-shell example.com redis
+
+# Shell into Nginx container
+easyinstall docker-shell example.com nginx
+```
+
+### **Docker Redis Access**
+```bash
+# Redis CLI for Docker site
+easyinstall docker-redis example.com
+
+# Then use Redis commands inside container
+```
+
+### **Docker Compose Commands**
+```bash
+# Go to site directory
+cd /var/lib/docker-sites/wordpress/example.com
+
+# Custom docker-compose commands
+docker-compose ps                    # List containers
+docker-compose top                   # Show processes
+docker-compose logs -f                # Follow logs
+docker-compose exec wordpress bash    # Shell access
+docker-compose restart                 # Restart all
+docker-compose down                     # Stop and remove
+docker-compose up -d                     # Start again
+```
+
+---
+
+## 📋 **Site Management**
+
+### **List All Sites**
+```bash
+# List all websites
+easyinstall list
+
+# Output example:
+📋 Traditional Websites (port 80) with Redis:
+  • http://site1.com (Redis port: 6379)
+  • http://site2.com (Redis port: 6380)
+
+🐳 Docker Sites:
+  • dockersite.com - http://192.168.1.100:8080
+```
+
+### **Delete a Site**
+```bash
+# Delete traditional site (removes files, DB, Redis)
+easyinstall delete example.com
+
+# Delete Docker site
+easyinstall delete docker-site.com
+
+# Force delete (skip confirmation)
+yes | easyinstall delete example.com
+```
+
+### **Site Information**
+```bash
+# View site credentials
+cat /root/example.com-credentials.txt
+
+# View site files
+ls -la /var/www/html/example.com
+
+# View Docker site files
+ls -la /var/lib/docker-sites/wordpress/example.com
+
+# Check site logs
+tail -f /var/log/nginx/example.com.error.log
+tail -f /var/log/nginx/example.com.access.log
+```
+
+---
+
+## 🔒 **SSL Commands**
+
+### **Enable SSL**
+```bash
+# Enable SSL for traditional site
+easyinstall ssl example.com
+
+# Enable SSL for Docker site (use --ssl with installation)
+easyinstall wp-docker example.com --ssl
+
+# Force renew SSL
+certbot renew --force-renewal
+
+# Check SSL expiry
+certbot certificates
+```
+
+### **SSL Management**
+```bash
+# List all SSL certificates
+certbot certificates
+
+# Delete SSL certificate
+certbot delete --cert-name example.com
+
+# Test auto-renewal
+certbot renew --dry-run
+```
+
+---
+
+## 💾 **Backup Commands**
+
+### **Local Backups**
+```bash
+# Create daily backup
+easyinstall backup
+easyinstall backup daily
+
+# Create weekly backup
+easyinstall backup weekly
+
+# Create monthly backup
+easyinstall backup monthly
+
+# Backup specific Docker site
+easyinstall backup-docker example.com
+
+# Backup with custom name
+easyinstall backup --name=pre-update
+```
+
+### **Backup Locations**
+```bash
+# Daily backups
+ls -la /backups/daily/
+
+# Weekly backups
+ls -la /backups/weekly/
+
+# Monthly backups
+ls -la /backups/monthly/
+
+# Docker site backups
+ls -la /backups/docker/example.com/
+```
+
+### **Backup Management**
+```bash
+# View last backup
+ls -lt /backups/daily/ | head -5
+
+# Check backup size
+du -sh /backups/daily/*
+
+# Extract and inspect backup
+cd /tmp
+tar -xzf /backups/daily/backup-20240101-020001.tar.gz
+ls -la
+```
+
+---
+
+## 📊 **Monitoring Commands**
+
+### **System Monitoring**
+```bash
+# Live system monitor (updates every 5s)
+easyinstall monitor
+
+# Quick system status
+easyinstall status
+
+# Open Netdata dashboard
+easyinstall netdata
+# Then visit: http://your-server-ip:19999
+```
+
+### **Custom Monitoring**
+```bash
+# Check specific services
+systemctl status nginx
+systemctl status mysql
+systemctl status php8.2-fpm
+systemctl status redis-server
+systemctl status docker
+systemctl status fail2ban
+
+# View resource usage
+htop
+free -h
+df -h
+```
+
+### **Log Monitoring**
+```bash
+# Follow all logs
+tail -f /var/log/nginx/*.log
+
+# Follow specific site logs
+tail -f /var/log/nginx/example.com.error.log
+
+# Follow Redis logs
+tail -f /var/log/redis/redis-example-com.log
+
+# Follow system logs
+journalctl -f
+```
+
+---
+
+## ✨ **Advanced Features**
+
+### **Git Integration**
+```bash
+# Initialize git for a site
+easyinstall git init example.com https://github.com/user/repo.git
+
+# Deploy site from git
+easyinstall git deploy example.com
+
+# Check git status
+easyinstall git status example.com
+
+# Pull latest changes
+easyinstall git pull example.com
+
+# Push changes to remote
+easyinstall git push example.com
+
+# View git log
+easyinstall git log example.com
+
+# Create bare repository
+easyinstall git create-repo myproject
+```
+
+### **Git Advanced Commands**
+```bash
+# Clone specific branch
+easyinstall git init example.com https://github.com/user/repo.git --branch=develop
+
+# Deploy with submodules
+easyinstall git deploy example.com --recursive
+
+# Setup webhook for auto-deploy
+easyinstall git webhook example.com
+```
+
+### **Staging Sites**
+```bash
+# Create staging site
+easyinstall staging create example.com
+# Staging URL: http://staging.example.com
+
+# Sync staging to production
+easyinstall staging sync example.com
+
+# Delete staging site
+easyinstall staging delete example.com
+
+# List all staging sites
+easyinstall staging list
+
+# Push staging to production
+easyinstall staging push example.com
+
+# Compare staging with production
+easyinstall staging diff example.com
+```
+
+### **Staging Advanced**
+```bash
+# Create staging with specific DB
+easyinstall staging create example.com --db-copy
+
+# Sync specific tables only
+easyinstall staging sync example.com --tables=wp_posts,wp_options
+
+# Create staging from backup
+easyinstall staging create example.com --from-backup=20240101
+```
+
+### **Cloud Backup**
+```bash
+# Configure Google Drive
+easyinstall cloud-backup configure-gdrive
+
+# Configure AWS S3
+easyinstall cloud-backup configure-s3
+
+# Backup site to Google Drive
+easyinstall cloud-backup backup example.com gdrive
+
+# Backup site to AWS S3
+easyinstall cloud-backup backup example.com s3
+
+# Backup to both
+easyinstall cloud-backup backup example.com both
+
+# List cloud backups
+easyinstall cloud-backup list example.com
+easyinstall cloud-backup list example.com gdrive
+easyinstall cloud-backup list example.com s3
+
+# Schedule cloud backups
+easyinstall cloud-backup schedule daily gdrive
+easyinstall cloud-backup schedule weekly s3
+```
+
+### **Cloud Backup Options**
+```bash
+# Backup with encryption
+easyinstall cloud-backup backup example.com gdrive --encrypt
+
+# Backup with compression level
+easyinstall cloud-backup backup example.com s3 --compress=9
+
+# Incremental backup
+easyinstall cloud-backup backup example.com gdrive --incremental
+
+# Verify backup after upload
+easyinstall cloud-backup backup example.com s3 --verify
+```
+
+### **One-Click Restore**
+```bash
+# Restore latest local backup
+easyinstall restore example.com latest local
+
+# Restore specific backup
+easyinstall restore example.com backup-20240101.tar.gz local
+
+# Restore from Google Drive
+easyinstall restore example.com latest gdrive
+
+# Restore from AWS S3
+easyinstall restore example.com latest s3
+
+# Restore with options
+easyinstall restore example.com latest local --db-only
+easyinstall restore example.com latest local --files-only
+```
+
+### **Restore Management**
+```bash
+# Preview restore (dry run)
+easyinstall restore example.com latest local --dry-run
+
+# Force restore (skip confirmation)
+easyinstall restore example.com latest local --force
+
+# Restore and verify
+easyinstall restore example.com latest local --verify
+
+# Rollback if needed
+easyinstall restore example.com --rollback
+```
+
+---
+
+## 🔧 **System Commands**
+
+### **Service Management**
+```bash
+# Restart all services
+systemctl restart nginx php8.2-fpm mysql redis-server
+
+# Stop all services
+systemctl stop nginx php8.2-fpm mysql redis-server
+
+# Start all services
+systemctl start nginx php8.2-fpm mysql redis-server
+
+# Check all services
+easyinstall status
+```
+
+### **Firewall Commands**
+```bash
+# Check firewall status
+ufw status verbose
+
+# Allow custom port
+ufw allow 8080/tcp
+
+# Deny IP
+ufw deny from 192.168.1.100
+
+# Delete rule
+ufw delete allow 8080/tcp
+```
+
+### **Fail2ban Commands**
+```bash
+# Check banned IPs
+fail2ban-client status
+fail2ban-client status sshd
+fail2ban-client status wordpress
+
+# Unban IP
+fail2ban-client set sshd unbanip 192.168.1.100
+
+# Check fail2ban logs
+tail -f /var/log/fail2ban.log
+```
+
+---
+
+## 🛠️ **Maintenance Commands**
+
+### **System Updates**
+```bash
+# Update all packages
+apt update && apt upgrade -y
+
+# Update EasyInstall
+cd /path/to/easyinstall
+git pull
+sudo ./easyinstall.sh --update
+
+# Check for updates
+easyinstall --version
+easyinstall check-updates
+```
+
+### **Cleanup Commands**
+```bash
+# Clean Docker system
+docker system prune -f
+docker system prune -a --volumes
+
+# Clean old logs
+find /var/log -name "*.log" -size +100M -exec truncate -s 0 {} \;
+
+# Clean package cache
+apt clean
+apt autoremove -y
+
+# Clean old backups
+find /backups/daily -type f -mtime +7 -delete
+```
+
+### **Performance Tuning**
+```bash
+# Check system load
+uptime
+top
+
+# Check memory usage
+free -m
+
+# Check disk I/O
+iostat -x 1
+
+# Check network
+iftop
+nethogs
+```
+
+---
+
+## 📝 **Quick Examples by Use Case**
+
+### **Personal Blog**
+```bash
+# Simple setup
+easyinstall wp myblog.com --ssl
+easyinstall redis-status
+easyinstall monitor
+```
+
+### **Agency (Multiple Clients)**
+```bash
+# Client sites with separate Redis
+easyinstall wp client1.com
+easyinstall wp client2.com
+easyinstall wp client3.com
+
+# List all
+easyinstall list
+
+# Backup all
+easyinstall backup weekly
+```
+
+### **Development Environment**
+```bash
+# Docker with PHP 8.3
+easyinstall wp-docker dev.com --php=8.3 --mysql=8.0
+
+# Create staging
+easyinstall staging create dev.com
+
+# Git integration
+easyinstall git init dev.com https://github.com/user/dev.git
+```
+
+### **E-commerce Site**
+```bash
+# WordPress with Redis cache
+easyinstall wp store.com --ssl
+
+# Monitor performance
+easyinstall monitor
+# Check Netdata: http://server-ip:19999
+
+# Daily backups
+easyinstall backup daily
+easyinstall cloud-backup configure-s3
+easyinstall cloud-backup backup store.com s3
+```
+
+### **High-Traffic Site**
+```bash
+# Optimized setup
+easyinstall wp busy.com --php=8.3
+
+# Check Redis cache
+redis-cli -p 6379 info stats | grep keyspace
+
+# Monitor resources
+easyinstall monitor
+
+# Auto-healing enabled
+systemctl status autoheal
+```
+
+---
+
+## 🎯 **Command Summary Table**
+
+| Category | Command | Description |
+|----------|---------|-------------|
+| **WordPress** | `easyinstall wp domain.com` | Traditional WordPress |
+| | `easyinstall wp-docker domain.com` | Docker WordPress |
+| | `easyinstall wp domain.com --ssl` | WordPress with SSL |
+| **Redis** | `easyinstall redis-status` | Show Redis instances |
+| | `easyinstall redis-restart domain.com` | Restart Redis |
+| | `easyinstall redis-cli domain.com` | Redis CLI |
+| **Docker** | `easyinstall docker-list` | List Docker sites |
+| | `easyinstall docker-logs domain.com` | View logs |
+| | `easyinstall docker-shell domain.com` | Shell access |
+| **Management** | `easyinstall list` | List all sites |
+| | `easyinstall delete domain.com` | Delete site |
+| | `easyinstall status` | System status |
+| **SSL** | `easyinstall ssl domain.com` | Enable SSL |
+| **Backup** | `easyinstall backup` | Create backup |
+| | `easyinstall backup-docker domain.com` | Backup Docker |
+| **Monitoring** | `easyinstall monitor` | Live monitor |
+| | `easyinstall netdata` | Open Netdata |
+| **Advanced** | `easyinstall staging create` | Create staging |
+| | `easyinstall git init` | Git init |
+| | `easyinstall cloud-backup` | Cloud backup |
+| | `easyinstall restore` | One-click restore |
+
+---
+
+## 🆘 **Help Commands**
+
+```bash
+# Show main help
+easyinstall help
+easyinstall --help
+easyinstall -h
+
+# Show version
+easyinstall --version
+
+# Show command-specific help
+easyinstall wp --help
+easyinstall wp-docker --help
+easyinstall staging --help
+easyinstall git --help
+easyinstall cloud-backup --help
+
+# Show all available commands
+easyinstall help | grep -E "^  [a-z]" | sort
+```
+
+---
+
+## ⚡ **Pro Tips**
+
+1. **Redis Ports**: Traditional sites automatically get ports 6379, 6380, 6381...
+2. **Docker Ports**: Docker sites automatically get ports 8080, 8081, 8082...
+3. **SSL First**: Always use `--ssl` during installation for best results
+4. **Monitor Regularly**: Use `easyinstall monitor` to catch issues early
+5. **Backup Before Changes**: Always backup before major changes
+6. **Use Staging**: Test changes on staging before production
+7. **Auto-Healing**: The auto-heal service keeps your sites running
+
+---
+
+## 🔍 **Troubleshooting Commands**
+
+```bash
+# Check service logs
+journalctl -u nginx -f
+journalctl -u php8.2-fpm -f
+journalctl -u mysql -f
+journalctl -u redis-example-com -f
+
+# Test configurations
+nginx -t
+php-fpm8.2 -t
+mysqlcheck -A
+
+# Check ports in use
+netstat -tlnp
+ss -tlnp
+
+# Check open files
+lsof -i :80
+lsof -i :443
+```
+
+---
+
+**Need more help?** Check the [Troubleshooting Guide](TROUBLESHOOTING.md) or [open an issue](https://github.com/yourusername/easyinstall/issues).
+
+---
+
+*Happy Hosting!* 🚀
